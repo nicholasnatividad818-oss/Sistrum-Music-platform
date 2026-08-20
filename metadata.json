@@ -1,0 +1,8 @@
+{
+  "name": "Remix Sïstrum - Music Streaming Platform",
+  "description": "Music streaming platform featuring interactive audio waveforms, timed community comments, audio synthesis engine, track uploads, playlists, and artist profiles. With A.I. music generation capability. ",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
