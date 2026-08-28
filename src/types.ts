@@ -32,6 +32,12 @@ export interface Track {
   isLiked?: boolean;
   isReposted?: boolean;
   audioUrl?: string; // If uploaded audio file / blob
+
+  // NRN Catalog integration
+  catalogTrackId?: string;
+  catalogSource?: 'nrn-catalog';
+  isrc?: string;
+  catalogSyncedAt?: string;
   synthPreset?: 'lofi' | 'synthwave' | 'house' | 'ambient' | 'trap' | 'futurebass' | 'chillhop';
   stems?: {
     drums?: boolean;
