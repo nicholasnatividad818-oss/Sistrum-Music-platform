@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import { Track, Artist, Playlist, Comment, ActiveTab, EqualizerSettings } from './types';
 import { MOCK_TRACKS, MOCK_ARTISTS, MOCK_PLAYLISTS, MOCK_COMMENTS, CURRENT_USER } from './data/mockData';
 import { audioEngine } from './services/audioEngine';
@@ -590,6 +591,9 @@ export default function App() {
           onToggleTrackInPlaylist={handleToggleTrackInPlaylist}
         />
       )}
+
+      {/* Vercel Web Analytics */}
+      <Analytics />
     </div>
   );
 }
