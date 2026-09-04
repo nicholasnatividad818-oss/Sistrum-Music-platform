@@ -81,6 +81,20 @@ export interface Artist {
   };
 }
 
+export interface UserProfile {
+  id: string;
+  username: string | null;
+  displayName: string;
+  avatarUrl: string;
+  bannerUrl: string;
+  bio: string;
+  location: string;
+  isVerified: boolean;
+  termsAcceptedAt: string | null;
+}
+
+export type LegalDocument = 'terms' | 'privacy' | 'community' | 'copyright';
+
 export type ActiveTab = 'discover' | 'stream' | 'library' | 'upload' | 'artist' | 'track-detail';
 
 export interface EqualizerSettings {

@@ -31,3 +31,4 @@ comment on column public.tracks.isrc is
 
 comment on column public.tracks.catalog_synced_at is
   'Last successful metadata synchronization from NRN Catalog.';
+

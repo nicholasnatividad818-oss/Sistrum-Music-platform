@@ -11,6 +11,7 @@ export async function signUp(
     options: {
       data: {
         display_name: displayName,
+        terms_accepted_at: new Date().toISOString(),
       },
     },
   });
@@ -61,4 +62,11 @@ export async function getCurrentSession() {
   if (error) throw error;
 
   return session;
+}
+
+export async function sendPasswordReset(email: string) {
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin,
+  });
+  if (error) throw error;
 }
