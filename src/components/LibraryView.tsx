@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Track, Playlist } from '../types';
+import { Track, Playlist, UserProfile } from '../types';
 import { TrackCard } from './TrackCard';
 import { Heart, ListMusic, Repeat, Clock, Upload, Plus } from 'lucide-react';
 
@@ -22,6 +22,7 @@ interface LibraryViewProps {
   onOpenPlaylistModal: (track: Track) => void;
   onOpenShareModal: (track: Track) => void;
   onOpenUploadModal: () => void;
+  profile: UserProfile | null;
 }
 
 export function LibraryView({
@@ -42,7 +43,8 @@ export function LibraryView({
   onOpenArtistProfile,
   onOpenPlaylistModal,
   onOpenShareModal,
-  onOpenUploadModal
+  onOpenUploadModal,
+  profile
 }: LibraryViewProps) {
   const [activeTab, setActiveTab] = useState<'likes' | 'playlists' | 'uploads' | 'reposts' | 'history'>('likes');
 
@@ -52,8 +54,8 @@ export function LibraryView({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-neutral-900 border border-neutral-800 rounded-3xl p-6 shadow-sm">
         <div className="flex items-center gap-4">
           <img
-            src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&auto=format&fit=crop&q=80"
-            alt="Alex Rivera"
+            src={profile?.avatarUrl || 'https://images.unsplash.com/photo-1520975958225-57c3a5b11c0b?w=200&auto=format&fit=crop&q=80'}
+            alt={profile?.displayName || 'Your profile'}
             className="w-16 h-16 rounded-full border-2 border-[#ff5500] object-cover shadow-md"
           />
           <div>

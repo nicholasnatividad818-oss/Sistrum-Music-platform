@@ -4,9 +4,23 @@
  */
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Track, Artist, Playlist, Comment, ActiveTab, EqualizerSettings } from './types';
-import { MOCK_TRACKS, MOCK_ARTISTS, MOCK_PLAYLISTS, MOCK_COMMENTS, CURRENT_USER } from './data/mockData';
+import type { User } from '@supabase/supabase-js';
+import { Analytics } from '@vercel/analytics/react';
+import { Track, Artist, Playlist, Comment, ActiveTab, EqualizerSettings, LegalDocument, UserProfile } from './types';
 import { audioEngine } from './services/audioEngine';
+import { supabase } from './lib/supabase';
+import { signOut } from './services/auth';
+import {
+  createComment,
+  createPlaylist,
+  deleteCurrentAccount,
+  loadPlatformData,
+  reportTrack,
+  setArtistFollow,
+  setPlaylistTrack,
+  setTrackLike,
+  setTrackRepost,
+} from './services/platform';
 import { Navbar } from './components/Navbar';
 import { DiscoverView } from './components/DiscoverView';
 import { StreamView } from './components/StreamView';
@@ -20,26 +34,22 @@ import { UploadModal } from './components/UploadModal';
 import { QueueDrawer } from './components/QueueDrawer';
 import { ShareModal } from './components/ShareModal';
 import { PlaylistModal } from './components/PlaylistModal';
+import { AuthModal } from './components/AuthModal';
+import { LegalModal } from './components/LegalModal';
+import { ReportModal } from './components/ReportModal';
+import { AppFooter } from './components/AppFooter';
 
 export default function App() {
   // --- Data State ---
-  const [tracks, setTracks] = useState<Track[]>(() => {
-    const saved = localStorage.getItem('soundwave_tracks');
-    return saved ? JSON.parse(saved) : MOCK_TRACKS;
-  });
-
-  const [artists, setArtists] = useState<Artist[]>(MOCK_ARTISTS);
-  const [playlists, setPlaylists] = useState<Playlist[]>(() => {
-    const saved = localStorage.getItem('soundwave_playlists');
-    return saved ? JSON.parse(saved) : MOCK_PLAYLISTS;
-  });
-
-  const [commentsMap, setCommentsMap] = useState<Record<string, Comment[]>>(() => {
-    const saved = localStorage.getItem('soundwave_comments');
-    return saved ? JSON.parse(saved) : MOCK_COMMENTS;
-  });
-
-  const [followedArtistIds, setFollowedArtistIds] = useState<string[]>(CURRENT_USER.followingArtistIds);
+  const [tracks, setTracks] = useState<Track[]>([]);
+  const [artists, setArtists] = useState<Artist[]>([]);
+  const [playlists, setPlaylists] = useState<Playlist[]>([]);
+  const [commentsMap, setCommentsMap] = useState<Record<string, Comment[]>>({});
+  const [followedArtistIds, setFollowedArtistIds] = useState<string[]>([]);
+  const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [isLoadingData, setIsLoadingData] = useState(true);
+  const [dataError, setDataError] = useState('');
 
   // --- Active Tab Navigation & Views ---
   const [activeTab, setActiveTab] = useState<ActiveTab>('discover');
@@ -50,15 +60,15 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
 
   // --- Player State ---
-  const [currentTrack, setCurrentTrack] = useState<Track | null>(tracks[0] || null);
+  const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(tracks[0]?.duration || 180);
+  const [duration, setDuration] = useState(180);
   const [volume, setVolume] = useState(0.85);
   const [isMuted, setIsMuted] = useState(false);
   const [isShuffle, setIsShuffle] = useState(false);
   const [repeatMode, setRepeatMode] = useState<'off' | 'all' | 'one'>('off');
-  const [queue, setQueue] = useState<Track[]>(tracks.slice(1));
+  const [queue, setQueue] = useState<Track[]>([]);
   const [history, setHistory] = useState<Track[]>([]);
 
   // --- Equalizer Settings ---
@@ -78,19 +88,50 @@ export default function App() {
   const [isQueueOpen, setIsQueueOpen] = useState(false);
   const [shareModalTrack, setShareModalTrack] = useState<Track | null>(null);
   const [playlistModalTrack, setPlaylistModalTrack] = useState<Track | null>(null);
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [legalDocument, setLegalDocument] = useState<LegalDocument | null>(null);
+  const [reportModalTrack, setReportModalTrack] = useState<Track | null>(null);
+  const [accountDeletePending, setAccountDeletePending] = useState(false);
 
-  // Sync to LocalStorage
-  useEffect(() => {
-    localStorage.setItem('soundwave_tracks', JSON.stringify(tracks));
-  }, [tracks]);
+  const refreshData = useCallback(async (activeUser: User | null = user) => {
+    setDataError('');
+    try {
+      const data = await loadPlatformData(activeUser);
+      setTracks(data.tracks);
+      setArtists(data.artists);
+      setPlaylists(data.playlists);
+      setCommentsMap(data.comments);
+      setFollowedArtistIds(data.followedArtistIds);
+      setProfile(data.profile);
+      setCurrentTrack((current) => current ? data.tracks.find((track) => track.id === current.id) || data.tracks[0] || null : data.tracks[0] || null);
+      setSelectedTrack((selected) => selected ? data.tracks.find((track) => track.id === selected.id) || null : null);
+      setQueue(data.tracks.slice(1));
+    } catch (caught) {
+      setDataError(caught instanceof Error ? caught.message : 'Unable to load Sistrum data.');
+    } finally {
+      setIsLoadingData(false);
+    }
+  }, [user]);
 
   useEffect(() => {
-    localStorage.setItem('soundwave_playlists', JSON.stringify(playlists));
-  }, [playlists]);
-
-  useEffect(() => {
-    localStorage.setItem('soundwave_comments', JSON.stringify(commentsMap));
-  }, [commentsMap]);
+    let mounted = true;
+    supabase.auth.getSession().then(({ data, error }) => {
+      if (!mounted) return;
+      if (error) setDataError(error.message);
+      const activeUser = data.session?.user || null;
+      setUser(activeUser);
+      void refreshData(activeUser);
+    });
+    const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
+      const activeUser = session?.user || null;
+      setUser(activeUser);
+      void refreshData(activeUser);
+    });
+    return () => {
+      mounted = false;
+      subscription.subscription.unsubscribe();
+    };
+  }, []);
 
   // Audio Engine Callbacks Setup
   const handleTrackEnded = useCallback(() => {
@@ -126,14 +167,19 @@ export default function App() {
     // Update history
     setHistory((prev) => [track, ...prev.filter((t) => t.id !== track.id)].slice(0, 20));
 
-    await audioEngine.loadTrack(
-      track.synthPreset || 'synthwave',
-      track.duration,
-      track.bpm,
-      track.audioUrl
-    );
-    audioEngine.play();
-    setIsPlaying(true);
+    try {
+      await audioEngine.loadTrack(
+        track.synthPreset || 'synthwave',
+        track.duration,
+        track.bpm,
+        track.audioUrl
+      );
+      audioEngine.play();
+      setIsPlaying(true);
+    } catch {
+      setDataError('This track could not be played. The file may be unavailable or unsupported.');
+      setIsPlaying(false);
+    }
   };
 
   const handlePauseTrack = () => {
@@ -160,6 +206,7 @@ export default function App() {
   };
 
   const handleNextTrack = () => {
+    if (tracks.length === 0) return;
     if (queue.length > 0) {
       const next = queue[0];
       setQueue((prev) => prev.slice(1));
@@ -174,6 +221,7 @@ export default function App() {
   };
 
   const handlePrevTrack = () => {
+    if (tracks.length === 0) return;
     if (currentTime > 3) {
       handleSeek(0);
       return;
@@ -210,122 +258,123 @@ export default function App() {
     audioEngine.applyEqualizer(newSettings);
   };
 
-  // Like Track toggle
-  const handleLikeToggle = (trackId: string) => {
-    setTracks((prev) =>
-      prev.map((t) => {
-        if (t.id === trackId) {
-          const isLiked = !t.isLiked;
-          return {
-            ...t,
-            isLiked,
-            likeCount: isLiked ? t.likeCount + 1 : Math.max(0, t.likeCount - 1)
-          };
-        }
-        return t;
-      })
-    );
+  const requireUser = () => {
+    if (user) return user;
+    setIsAuthOpen(true);
+    return null;
   };
 
-  // Repost Track toggle
-  const handleRepostToggle = (trackId: string) => {
-    setTracks((prev) =>
-      prev.map((t) => {
-        if (t.id === trackId) {
-          const isReposted = !t.isReposted;
-          return {
-            ...t,
-            isReposted,
-            repostCount: isReposted ? t.repostCount + 1 : Math.max(0, t.repostCount - 1)
-          };
-        }
-        return t;
-      })
-    );
+  const handleLikeToggle = async (trackId: string) => {
+    const activeUser = requireUser();
+    if (!activeUser) return;
+    const track = tracks.find((item) => item.id === trackId);
+    if (!track) return;
+    try {
+      await setTrackLike(activeUser.id, trackId, !track.isLiked);
+      await refreshData(activeUser);
+    } catch (caught) {
+      setDataError(caught instanceof Error ? caught.message : 'Unable to update this like.');
+    }
   };
 
-  // Follow artist toggle
-  const handleFollowToggle = (artistId: string) => {
-    setFollowedArtistIds((prev) =>
-      prev.includes(artistId) ? prev.filter((id) => id !== artistId) : [...prev, artistId]
-    );
-    setArtists((prev) =>
-      prev.map((a) => {
-        if (a.id === artistId) {
-          const isFollowing = followedArtistIds.includes(artistId);
-          return {
-            ...a,
-            followersCount: isFollowing ? a.followersCount - 1 : a.followersCount + 1
-          };
-        }
-        return a;
-      })
-    );
+  const handleRepostToggle = async (trackId: string) => {
+    const activeUser = requireUser();
+    if (!activeUser) return;
+    const track = tracks.find((item) => item.id === trackId);
+    if (!track) return;
+    try {
+      await setTrackRepost(activeUser.id, trackId, !track.isReposted);
+      await refreshData(activeUser);
+    } catch (caught) {
+      setDataError(caught instanceof Error ? caught.message : 'Unable to update this repost.');
+    }
   };
 
-  // Add a timed comment to a track
-  const handleAddComment = (trackId: string, text: string, timestamp: number) => {
-    const newComment: Comment = {
-      id: `c-${Date.now()}`,
-      trackId,
-      userId: CURRENT_USER.id,
-      userName: CURRENT_USER.name,
-      userAvatar: CURRENT_USER.avatar,
-      text,
-      timestamp,
-      createdAt: 'Just now',
-      likes: 0
-    };
-
-    setCommentsMap((prev) => ({
-      ...prev,
-      [trackId]: [...(prev[trackId] || []), newComment]
-    }));
-
-    setTracks((prev) =>
-      prev.map((t) => (t.id === trackId ? { ...t, commentCount: t.commentCount + 1 } : t))
-    );
+  const handleFollowToggle = async (artistId: string) => {
+    const activeUser = requireUser();
+    if (!activeUser || activeUser.id === artistId) return;
+    try {
+      await setArtistFollow(activeUser.id, artistId, !followedArtistIds.includes(artistId));
+      await refreshData(activeUser);
+    } catch (caught) {
+      setDataError(caught instanceof Error ? caught.message : 'Unable to update this follow.');
+    }
   };
 
-  // Add newly uploaded/composed track
-  const handleTrackCreated = (newTrack: Track) => {
-    setTracks((prev) => [newTrack, ...prev]);
-    setSelectedTrack(newTrack);
-    setActiveTab('track-detail');
-    handlePlayTrack(newTrack);
+  const handleAddComment = async (trackId: string, text: string, timestamp: number) => {
+    const activeUser = requireUser();
+    if (!activeUser) return;
+    try {
+      await createComment(activeUser.id, trackId, text, timestamp);
+      await refreshData(activeUser);
+    } catch (caught) {
+      setDataError(caught instanceof Error ? caught.message : 'Unable to post this comment.');
+    }
   };
 
-  // Create new playlist
-  const handleCreatePlaylist = (title: string, description: string) => {
-    const newPlaylist: Playlist = {
-      id: `pl-${Date.now()}`,
-      title,
-      description,
-      coverArt: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=600&auto=format&fit=crop&q=80',
-      creator: CURRENT_USER.name,
-      creatorAvatar: CURRENT_USER.avatar,
-      trackIds: playlistModalTrack ? [playlistModalTrack.id] : [],
-      isPublic: true,
-      likesCount: 1,
-      createdAt: 'Just now'
-    };
-    setPlaylists((prev) => [newPlaylist, ...prev]);
+  const handleTrackCreated = async () => {
+    await refreshData(user);
+    setActiveTab('library');
   };
 
-  // Toggle track inside a playlist
-  const handleToggleTrackInPlaylist = (playlistId: string, trackId: string) => {
-    setPlaylists((prev) =>
-      prev.map((pl) => {
-        if (pl.id === playlistId) {
-          const exists = pl.trackIds.includes(trackId);
-          return {
-            ...pl,
-            trackIds: exists ? pl.trackIds.filter((id) => id !== trackId) : [...pl.trackIds, trackId]
-          };
-        }
-        return pl;
-      })
-    );
+  const handleCreatePlaylist = async (title: string, description: string) => {
+    const activeUser = requireUser();
+    if (!activeUser) return;
+    try {
+      await createPlaylist(activeUser.id, title, description, playlistModalTrack?.id);
+      await refreshData(activeUser);
+    } catch (caught) {
+      setDataError(caught instanceof Error ? caught.message : 'Unable to create this playlist.');
+    }
+  };
+
+  const handleToggleTrackInPlaylist = async (playlistId: string, trackId: string) => {
+    const activeUser = requireUser();
+    if (!activeUser) return;
+    const playlist = playlists.find((item) => item.id === playlistId);
+    if (!playlist) return;
+    try {
+      const active = !playlist.trackIds.includes(trackId);
+      await setPlaylistTrack(playlistId, trackId, active, playlist.trackIds.length);
+      await refreshData(activeUser);
+    } catch (caught) {
+      setDataError(caught instanceof Error ? caught.message : 'Unable to update this playlist.');
+    }
+  };
+
+  const handleOpenUpload = () => {
+    if (!requireUser()) return;
+    setIsUploadOpen(true);
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    setActiveTab('discover');
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!user || accountDeletePending) return;
+    const confirmed = window.confirm('Permanently delete your Sistrum account, uploads, playlists, comments, and social activity? This cannot be undone.');
+    if (!confirmed) return;
+    setAccountDeletePending(true);
+    try {
+      await deleteCurrentAccount();
+      await signOut();
+      setActiveTab('discover');
+    } catch (caught) {
+      setDataError(caught instanceof Error ? caught.message : 'Unable to delete this account.');
+    } finally {
+      setAccountDeletePending(false);
+    }
+  };
+
+  const handleReportTrack = async (
+    reason: 'copyright' | 'harassment' | 'spam' | 'other',
+    details: string
+  ) => {
+    const activeUser = requireUser();
+    if (!activeUser || !reportModalTrack) throw new Error('Sign in to submit a report.');
+    await reportTrack(activeUser.id, reportModalTrack.id, reason, details);
   };
 
   // Open Views
@@ -376,21 +425,55 @@ export default function App() {
       <Navbar
         activeTab={activeTab}
         onSelectTab={(tab) => {
+          if (tab === 'library' && !user) {
+            setIsAuthOpen(true);
+            return;
+          }
           setActiveTab(tab);
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
-        onOpenUpload={() => setIsUploadOpen(true)}
+        onOpenUpload={handleOpenUpload}
         onOpenArtistProfile={handleOpenArtistProfile}
         onOpenTrackDetail={handleOpenTrackDetail}
         searchResults={searchResults}
         isPlaying={isPlaying}
+        user={user}
+        profile={profile}
+        onOpenAuth={() => setIsAuthOpen(true)}
+        onSignOut={handleSignOut}
+        onDeleteAccount={() => void handleDeleteAccount()}
       />
 
       {/* Main Content Body */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 pt-6">
-        {activeTab === 'discover' && (
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#ff5500]/30 bg-[#ff5500]/10 px-4 py-3 text-xs">
+          <span className="font-bold text-orange-100">Sistrum is in private beta. Keep your own backup of every master.</span>
+          {!user && <button onClick={() => setIsAuthOpen(true)} className="font-black text-[#ff7a3d] hover:text-white">Join the beta</button>}
+        </div>
+
+        {dataError && (
+          <div role="alert" className="mb-5 flex items-center justify-between gap-3 rounded-2xl border border-rose-900/60 bg-rose-950/35 px-4 py-3 text-xs text-rose-200">
+            <span>{dataError}</span>
+            <button onClick={() => void refreshData(user)} className="font-black text-white">Retry</button>
+          </div>
+        )}
+
+        {isLoadingData && (
+          <div className="py-24 text-center text-sm font-bold text-neutral-400">Loading the Sistrum catalog…</div>
+        )}
+
+        {!isLoadingData && tracks.length === 0 && activeTab === 'discover' && (
+          <section className="mb-8 rounded-3xl border border-neutral-800 bg-neutral-900 p-10 text-center">
+            <div className="text-xs font-black uppercase tracking-[0.2em] text-[#ff5500]">A clean first page</div>
+            <h1 className="mt-3 text-3xl font-black text-white">The Sistrum beta is ready for its first original release.</h1>
+            <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-neutral-400">No fabricated artists, streams, or comments—only music that beta creators actually publish.</p>
+            <button onClick={handleOpenUpload} className="mt-6 rounded-xl bg-[#ff5500] px-6 py-3 text-sm font-black text-white">Publish the first track</button>
+          </section>
+        )}
+
+        {!isLoadingData && activeTab === 'discover' && tracks.length > 0 && (
           <DiscoverView
             tracks={tracks}
             artists={artists}
@@ -407,11 +490,11 @@ export default function App() {
             onOpenArtistProfile={handleOpenArtistProfile}
             onOpenPlaylistModal={(t) => setPlaylistModalTrack(t)}
             onOpenShareModal={(t) => setShareModalTrack(t)}
-            onOpenUploadModal={() => setIsUploadOpen(true)}
+            onOpenUploadModal={handleOpenUpload}
           />
         )}
 
-        {activeTab === 'stream' && (
+        {!isLoadingData && activeTab === 'stream' && (
           <StreamView
             tracks={tracks}
             artists={artists}
@@ -428,15 +511,15 @@ export default function App() {
             onOpenArtistProfile={handleOpenArtistProfile}
             onOpenPlaylistModal={(t) => setPlaylistModalTrack(t)}
             onOpenShareModal={(t) => setShareModalTrack(t)}
-            onOpenUploadModal={() => setIsUploadOpen(true)}
+            onOpenUploadModal={handleOpenUpload}
           />
         )}
 
-        {activeTab === 'library' && (
+        {!isLoadingData && activeTab === 'library' && user && (
           <LibraryView
             likedTracks={tracks.filter((t) => t.isLiked)}
             repostedTracks={tracks.filter((t) => t.isReposted)}
-            uploadedTracks={tracks.filter((t) => t.artistId === 'current-user')}
+            uploadedTracks={tracks.filter((t) => t.artistId === user.id)}
             historyTracks={history}
             playlists={playlists}
             currentTrackId={currentTrack?.id}
@@ -451,7 +534,8 @@ export default function App() {
             onOpenArtistProfile={handleOpenArtistProfile}
             onOpenPlaylistModal={(t) => setPlaylistModalTrack(t)}
             onOpenShareModal={(t) => setShareModalTrack(t)}
-            onOpenUploadModal={() => setIsUploadOpen(true)}
+            onOpenUploadModal={handleOpenUpload}
+            profile={profile}
           />
         )}
 
@@ -474,9 +558,14 @@ export default function App() {
             isFollowingArtist={followedArtistIds.includes(selectedTrack.artistId)}
             onOpenPlaylistModal={(t) => setPlaylistModalTrack(t)}
             onOpenShareModal={(t) => setShareModalTrack(t)}
+            onReportTrack={(track) => {
+              if (requireUser()) setReportModalTrack(track);
+            }}
             onOpenArtistProfile={handleOpenArtistProfile}
             relatedTracks={tracks.filter((t) => t.id !== selectedTrack.id && t.genre === selectedTrack.genre)}
             onSelectTrack={handleOpenTrackDetail}
+            viewerProfile={profile}
+            onRequireAuth={() => setIsAuthOpen(true)}
           />
         )}
 
@@ -501,6 +590,8 @@ export default function App() {
           />
         )}
       </main>
+
+      <AppFooter onOpen={setLegalDocument} />
 
       {/* Docked Global Bottom Player Bar */}
       <GlobalPlayer
@@ -559,6 +650,9 @@ export default function App() {
         isOpen={isUploadOpen}
         onClose={() => setIsUploadOpen(false)}
         onTrackCreated={handleTrackCreated}
+        user={user}
+        profile={profile}
+        onRequireAuth={() => setIsAuthOpen(true)}
       />
 
       <QueueDrawer
@@ -590,6 +684,20 @@ export default function App() {
           onToggleTrackInPlaylist={handleToggleTrackInPlaylist}
         />
       )}
+
+      <AuthModal
+        isOpen={isAuthOpen}
+        onClose={() => setIsAuthOpen(false)}
+        onOpenTerms={() => setLegalDocument('terms')}
+        onOpenPrivacy={() => setLegalDocument('privacy')}
+      />
+      <LegalModal document={legalDocument} onClose={() => setLegalDocument(null)} />
+      <ReportModal
+        track={reportModalTrack}
+        onClose={() => setReportModalTrack(null)}
+        onSubmit={handleReportTrack}
+      />
+      <Analytics />
     </div>
   );
 }

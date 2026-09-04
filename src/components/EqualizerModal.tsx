@@ -211,3 +211,4 @@ export function EqualizerModal({
     </div>
   );
 }
+

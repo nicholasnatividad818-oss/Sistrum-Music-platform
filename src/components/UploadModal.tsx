@@ -1,34 +1,43 @@
-import { useState, useRef, ChangeEvent, DragEvent } from 'react';
-import { Track } from '../types';
+import { useState, useRef, useEffect, ChangeEvent, DragEvent } from 'react';
+import type { User } from '@supabase/supabase-js';
+import { Track, UserProfile } from '../types';
 import { audioEngine } from '../services/audioEngine';
+import { publishTrack } from '../services/platform';
 import { Waveform } from './Waveform';
 import { BeatMakerStudio } from './BeatMakerStudio';
 import confetti from 'canvas-confetti';
-import { Upload, Music, Image as ImageIcon, Sparkles, X, Check, Disc, Play, Pause, Layers } from 'lucide-react';
+import { Upload, Music, Image as ImageIcon, Sparkles, X, Check, Disc, Play, Pause, Layers, Loader2 } from 'lucide-react';
 
 interface UploadModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onTrackCreated: (newTrack: Track) => void;
+  onTrackCreated: () => Promise<void> | void;
+  user: User | null;
+  profile: UserProfile | null;
+  onRequireAuth: () => void;
 }
 
-export function UploadModal({ isOpen, onClose, onTrackCreated }: UploadModalProps) {
+export function UploadModal({ isOpen, onClose, onTrackCreated, user, profile, onRequireAuth }: UploadModalProps) {
   const [activeMode, setActiveMode] = useState<'upload' | 'studio'>('upload');
   
   // Upload State
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
   const [isDecoding, setIsDecoding] = useState(false);
   const [extractedWaveform, setExtractedWaveform] = useState<number[]>([]);
   const [extractedDuration, setExtractedDuration] = useState(180);
 
   // Metadata
   const [title, setTitle] = useState('');
-  const [artist, setArtist] = useState('Alex Rivera');
+  const [artist, setArtist] = useState(profile?.displayName || '');
   const [genre, setGenre] = useState('Electronic');
   const [tagsInput, setTagsInput] = useState('Synth, Beats, 2026');
   const [description, setDescription] = useState('');
   const [coverArtUrl, setCoverArtUrl] = useState('https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=600&auto=format&fit=crop&q=80');
+  const [rightsConfirmed, setRightsConfirmed] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [publishError, setPublishError] = useState('');
 
   // Preview playback
   const [isPreviewPlaying, setIsPreviewPlaying] = useState(false);
@@ -37,9 +46,23 @@ export function UploadModal({ isOpen, onClose, onTrackCreated }: UploadModalProp
   const fileInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    if (profile?.displayName) setArtist(profile.displayName);
+  }, [profile?.displayName]);
+
   if (!isOpen) return null;
 
   const handleAudioSelection = async (file: File) => {
+    setPublishError('');
+    if (file.size > 100 * 1024 * 1024) {
+      setPublishError('Audio files are limited to 100 MB during the private beta.');
+      return;
+    }
+    if (!file.type.startsWith('audio/')) {
+      setPublishError('Choose a supported audio file.');
+      return;
+    }
+    if (audioUrl) URL.revokeObjectURL(audioUrl);
     setAudioFile(file);
     const url = URL.createObjectURL(file);
     setAudioUrl(url);
@@ -108,7 +131,16 @@ export function UploadModal({ isOpen, onClose, onTrackCreated }: UploadModalProp
   const handleCoverUpload = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      if (file.size > 10 * 1024 * 1024) {
+        setPublishError('Artwork is limited to 10 MB.');
+        return;
+      }
+      if (!['image/jpeg', 'image/png', 'image/webp', 'image/avif'].includes(file.type)) {
+        setPublishError('Artwork must be JPEG, PNG, WebP, or AVIF.');
+        return;
+      }
       const url = URL.createObjectURL(file);
+      setCoverFile(file);
       setCoverArtUrl(url);
     }
   };
@@ -121,69 +153,72 @@ export function UploadModal({ isOpen, onClose, onTrackCreated }: UploadModalProp
     'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=600&auto=format&fit=crop&q=80'
   ];
 
-  const handlePublishUploadedTrack = () => {
-    if (!title) return;
-
-    confetti({
-      particleCount: 100,
-      spread: 70,
-      origin: { y: 0.6 }
-    });
-
-    const newTrack: Track = {
-      id: `track-${Date.now()}`,
-      title: title || 'Untitled Track',
-      artist: artist || 'Alex Rivera',
-      artistId: 'current-user',
-      artistAvatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&auto=format&fit=crop&q=80',
-      coverArt: coverArtUrl,
-      duration: Math.round(extractedDuration),
-      bpm: 124,
-      genre: genre,
-      tags: tagsInput.split(',').map((t) => t.trim()).filter(Boolean),
-      waveformData: extractedWaveform.length > 0 ? extractedWaveform : [0.3, 0.5, 0.7, 0.9, 0.6, 0.4, 0.8],
-      playCount: 1,
-      likeCount: 1,
-      repostCount: 0,
-      commentCount: 0,
-      releaseDate: 'Just now',
-      description: description || 'Uploaded to SoundWave platform.',
-      audioUrl: audioUrl || undefined,
-      synthPreset: genre === 'Lo-Fi' ? 'lofi' : genre === 'House' ? 'house' : genre === 'Ambient' ? 'ambient' : 'synthwave',
-      isLiked: true,
-      isReposted: false
-    };
-
-    onTrackCreated(newTrack);
-    onClose();
+  const handlePublishUploadedTrack = async () => {
+    if (!user) {
+      onClose();
+      onRequireAuth();
+      return;
+    }
+    if (!title.trim() || !audioFile || !rightsConfirmed) return;
+    setIsPublishing(true);
+    setPublishError('');
+    try {
+      await publishTrack({
+        user,
+        profile,
+        title,
+        artist,
+        genre,
+        tags: tagsInput.split(',').map((tag) => tag.trim()).filter(Boolean).slice(0, 12),
+        description,
+        duration: extractedDuration,
+        waveformData: extractedWaveform,
+        audioFile,
+        coverFile,
+        coverPresetUrl: coverFile ? undefined : coverArtUrl,
+        bpm: 0,
+        synthPreset: genre === 'Lo-Fi' ? 'lofi' : genre === 'House' ? 'house' : genre === 'Ambient' ? 'ambient' : 'synthwave',
+      });
+      await onTrackCreated();
+      confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+      onClose();
+    } catch (caught) {
+      setPublishError(caught instanceof Error ? caught.message : 'Unable to publish this track.');
+    } finally {
+      setIsPublishing(false);
+    }
   };
 
-  const handleStudioPublish = (trackData: Partial<Track>) => {
-    const newTrack: Track = {
-      id: `track-${Date.now()}`,
-      title: trackData.title || 'Studio Composition',
-      artist: 'Alex Rivera',
-      artistId: 'current-user',
-      artistAvatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&auto=format&fit=crop&q=80',
-      coverArt: trackData.coverArt || coverPresets[0],
-      duration: trackData.duration || 180,
-      bpm: trackData.bpm || 128,
-      genre: trackData.genre || 'Electronic',
-      tags: ['Sequencer', 'Original', 'SoundWave Studio'],
-      waveformData: trackData.waveformData || [0.4, 0.6, 0.8, 0.5, 0.7],
-      playCount: 1,
-      likeCount: 1,
-      repostCount: 0,
-      commentCount: 0,
-      releaseDate: 'Just now',
-      description: 'Created with SoundWave Beat Maker Sequencer.',
-      synthPreset: (trackData.synthPreset as any) || 'synthwave',
-      isLiked: true,
-      isReposted: false
-    };
-
-    onTrackCreated(newTrack);
-    onClose();
+  const handleStudioPublish = async (trackData: Partial<Track>) => {
+    if (!user) {
+      onClose();
+      onRequireAuth();
+      return;
+    }
+    setIsPublishing(true);
+    setPublishError('');
+    try {
+      await publishTrack({
+        user,
+        profile,
+        title: trackData.title || 'Studio Composition',
+        artist: profile?.displayName || artist || 'Sistrum Artist',
+        genre: trackData.genre || 'Electronic',
+        tags: ['Sequencer', 'Original', 'Sistrum Studio'],
+        description: 'Created with the Sistrum Beat Maker Sequencer.',
+        duration: trackData.duration || 180,
+        waveformData: trackData.waveformData || [0.4, 0.6, 0.8, 0.5, 0.7],
+        coverPresetUrl: trackData.coverArt || coverPresets[0],
+        bpm: trackData.bpm || 128,
+        synthPreset: trackData.synthPreset || 'synthwave',
+      });
+      await onTrackCreated();
+      onClose();
+    } catch (caught) {
+      setPublishError(caught instanceof Error ? caught.message : 'Unable to publish this composition.');
+    } finally {
+      setIsPublishing(false);
+    }
   };
 
   return (
@@ -196,7 +231,7 @@ export function UploadModal({ isOpen, onClose, onTrackCreated }: UploadModalProp
               <Upload className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-lg font-black text-white tracking-tight">SoundWave Creator Studio</h2>
+              <h2 className="text-lg font-black text-white tracking-tight">Sistrum Creator Studio</h2>
               <p className="text-xs text-neutral-400">Upload audio files or create custom beats in browser</p>
             </div>
           </div>
@@ -258,7 +293,7 @@ export function UploadModal({ isOpen, onClose, onTrackCreated }: UploadModalProp
                 </div>
                 <div>
                   <h4 className="text-base font-bold text-white mb-1">Drag and drop your audio file here</h4>
-                  <p className="text-xs text-neutral-400">Supports MP3, WAV, FLAC, AAC, OGG up to 250MB</p>
+                  <p className="text-xs text-neutral-400">Supports common audio formats up to 100 MB</p>
                 </div>
                 <button
                   type="button"
@@ -284,6 +319,7 @@ export function UploadModal({ isOpen, onClose, onTrackCreated }: UploadModalProp
 
                   <button
                     onClick={() => {
+                      if (audioUrl) URL.revokeObjectURL(audioUrl);
                       setAudioFile(null);
                       setAudioUrl(null);
                       setExtractedWaveform([]);
@@ -348,6 +384,7 @@ export function UploadModal({ isOpen, onClose, onTrackCreated }: UploadModalProp
                       src={preset}
                       alt="Preset"
                       onClick={() => setCoverArtUrl(preset)}
+                      onMouseDown={() => setCoverFile(null)}
                       className={`w-8 h-8 rounded-lg object-cover cursor-pointer border-2 transition-all ${
                         coverArtUrl === preset ? 'border-[#ff5500] scale-105' : 'border-transparent opacity-70 hover:opacity-100'
                       }`}
@@ -424,9 +461,10 @@ export function UploadModal({ isOpen, onClose, onTrackCreated }: UploadModalProp
 
             {/* Footer Buttons */}
             <div className="pt-4 border-t border-neutral-800 flex items-center justify-between">
-              <span className="text-xs text-neutral-400">
-                By publishing, you share this sound with the SoundWave community.
-              </span>
+              <label className="flex max-w-sm items-start gap-2 text-xs text-neutral-400">
+                <input type="checkbox" checked={rightsConfirmed} onChange={(event) => setRightsConfirmed(event.target.checked)} className="mt-0.5 accent-[#ff5500]" />
+                <span>I own or control the rights to this audio and artwork and agree to publish it publicly on Sistrum.</span>
+              </label>
 
               <div className="flex items-center gap-3">
                 <button
@@ -440,14 +478,19 @@ export function UploadModal({ isOpen, onClose, onTrackCreated }: UploadModalProp
                   type="button"
                   id="publish-track-btn"
                   onClick={handlePublishUploadedTrack}
-                  disabled={!title}
+                  disabled={!title.trim() || !audioFile || !rightsConfirmed || isPublishing || isDecoding}
                   className="px-6 py-2.5 rounded-xl bg-[#ff5500] hover:bg-[#ff6611] disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold transition-all shadow-md shadow-[#ff5500]/25 flex items-center gap-2"
                 >
-                  <Sparkles className="w-4 h-4" />
-                  <span>Publish Track</span>
+                  {isPublishing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                  <span>{isPublishing ? 'Publishing…' : 'Publish Track'}</span>
                 </button>
               </div>
             </div>
+            {publishError && (
+              <div role="alert" className="rounded-xl border border-rose-900/60 bg-rose-950/40 p-3 text-xs text-rose-200">
+                {publishError}
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -190,7 +190,7 @@ export function VisualizerModal({
             <Radio className="w-5 h-5 animate-pulse" />
           </div>
           <div>
-            <div className="text-xs uppercase tracking-widest text-[#ff5500] font-bold">SoundWave Studio</div>
+            <div className="text-xs uppercase tracking-widest text-[#ff5500] font-bold">Sistrum Studio</div>
             <div className="text-white text-sm font-semibold">Live Spectrum Analyzer</div>
           </div>
         </div>

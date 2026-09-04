@@ -1,0 +1,8 @@
+Sistrum staging preview redeploy trigger.
+Created to request a fresh Vercel preview deployment from feat/supabase-foundation.
+Local Vercel redeploy Fri Aug 28 10:24:03 PDT 2026
+Vercel redeploy Fri Aug 28 10:27:50 PDT 2026
+Preview trigger Fri Aug 28 10:30:05 PDT 2026
+Vite config redeploy Fri Aug 28 10:35:57 PDT 2026
+Reload fix deploy Fri Aug 28 11:00:25 PDT 2026
+

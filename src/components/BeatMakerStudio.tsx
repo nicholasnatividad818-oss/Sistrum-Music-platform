@@ -266,7 +266,7 @@ export function BeatMakerStudio({ onPublishTrack, onClose }: BeatMakerStudioProp
             <Music className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-white tracking-tight">SoundWave Beat Maker & Sequencer</h3>
+            <h3 className="text-lg font-bold text-white tracking-tight">Sistrum Beat Maker & Sequencer</h3>
             <p className="text-xs text-neutral-400">Compose interactive 16-step patterns directly in your browser</p>
           </div>
         </div>

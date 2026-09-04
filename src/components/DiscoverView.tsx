@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Track, Artist, Playlist } from '../types';
 import { TrackCard } from './TrackCard';
-import { GENRE_LIST } from '../data/mockData';
+import { GENRE_LIST } from '../data/constants';
 import {
   Flame,
   Sparkles,

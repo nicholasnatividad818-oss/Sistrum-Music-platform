@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { ActiveTab, Track, Artist } from '../types';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
+import { ActiveTab, Track, Artist, UserProfile } from '../types';
 import {
   Radio,
   Search,
@@ -24,6 +25,11 @@ interface NavbarProps {
   onOpenTrackDetail: (track: Track) => void;
   searchResults: { tracks: Track[]; artists: Artist[] };
   isPlaying?: boolean;
+  user: SupabaseUser | null;
+  profile: UserProfile | null;
+  onOpenAuth: () => void;
+  onSignOut: () => Promise<void>;
+  onDeleteAccount: () => void;
 }
 
 export function Navbar({
@@ -35,10 +41,16 @@ export function Navbar({
   onOpenArtistProfile,
   onOpenTrackDetail,
   searchResults,
-  isPlaying = false
+  isPlaying = false,
+  user,
+  profile,
+  onOpenAuth,
+  onSignOut,
+  onDeleteAccount
 }: NavbarProps) {
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
 
   const hasSearchContent = searchQuery.trim().length > 0;
 
@@ -212,35 +224,48 @@ export function Navbar({
             {showNotifications && (
               <div className="absolute top-full right-0 mt-2 w-72 bg-neutral-900 border border-neutral-800 rounded-2xl shadow-2xl p-4 z-50 space-y-2.5">
                 <div className="flex items-center justify-between pb-2 border-b border-neutral-800">
-                  <h4 className="text-xs font-bold text-white">Notifications</h4>
-                  <span className="text-[10px] text-[#ff5500]">Mark read</span>
+                  <h4 className="text-xs font-bold text-white">Beta updates</h4>
                 </div>
                 <div className="text-xs text-neutral-300 space-y-2">
                   <div className="p-2 rounded-lg bg-neutral-950/60 border border-neutral-800/60">
-                    <p className="font-semibold text-white">Kroma Waves dropped a new track</p>
-                    <p className="text-[10px] text-neutral-400">Midnight Grid Run (1984) • 2h ago</p>
-                  </div>
-                  <div className="p-2 rounded-lg bg-neutral-950/60 border border-neutral-800/60">
-                    <p className="font-semibold text-white">StudyBuddy liked your comment</p>
-                    <p className="text-[10px] text-neutral-400">"Passed finals listening to this" • 4h ago</p>
+                    <p className="font-semibold text-white">You’re in the Sistrum private beta.</p>
+                    <p className="text-[10px] text-neutral-400">Real-time notifications are coming in a later release.</p>
                   </div>
                 </div>
               </div>
             )}
           </div>
 
-          {/* User Avatar */}
-          <div
-            onClick={() => onSelectTab('library')}
-            className="flex items-center gap-2 cursor-pointer p-1 rounded-full hover:ring-2 hover:ring-[#ff5500]/50 transition-all"
-            title="Your Library & Profile"
-          >
-            <img
-              src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80"
-              alt="Profile"
-              className="w-8 h-8 rounded-full object-cover border border-neutral-700"
-            />
-          </div>
+          {user ? (
+            <div className="relative">
+              <button
+                onClick={() => setShowProfile((value) => !value)}
+                className="flex items-center gap-2 rounded-full p-1 hover:ring-2 hover:ring-[#ff5500]/50"
+                title="Account menu"
+              >
+                <img
+                  src={profile?.avatarUrl || 'https://images.unsplash.com/photo-1520975958225-57c3a5b11c0b?w=100&auto=format&fit=crop&q=80'}
+                  alt={profile?.displayName || 'Your profile'}
+                  className="w-8 h-8 rounded-full object-cover border border-neutral-700"
+                />
+              </button>
+              {showProfile && (
+                <div className="absolute right-0 top-full z-50 mt-2 w-60 rounded-2xl border border-neutral-800 bg-neutral-900 p-3 shadow-2xl">
+                  <div className="mb-2 border-b border-neutral-800 px-2 pb-3">
+                    <div className="truncate text-xs font-bold text-white">{profile?.displayName || user.email}</div>
+                    <div className="truncate text-[10px] text-neutral-500">{user.email}</div>
+                  </div>
+                  <button onClick={() => { onSelectTab('library'); setShowProfile(false); }} className="w-full rounded-lg px-2 py-2 text-left text-xs text-neutral-300 hover:bg-neutral-800 hover:text-white">Your library</button>
+                  <button onClick={() => { void onSignOut(); setShowProfile(false); }} className="w-full rounded-lg px-2 py-2 text-left text-xs text-neutral-300 hover:bg-neutral-800 hover:text-white">Sign out</button>
+                  <button onClick={() => { onDeleteAccount(); setShowProfile(false); }} className="w-full rounded-lg px-2 py-2 text-left text-xs text-rose-400 hover:bg-rose-950/40">Delete account</button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <button onClick={onOpenAuth} className="rounded-xl border border-neutral-700 px-3 py-2 text-xs font-bold text-white hover:border-[#ff5500]">
+              Sign in
+            </button>
+          )}
         </div>
       </div>
     </header>

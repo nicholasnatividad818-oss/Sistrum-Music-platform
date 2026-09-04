@@ -32,6 +32,12 @@ export interface Track {
   isLiked?: boolean;
   isReposted?: boolean;
   audioUrl?: string; // If uploaded audio file / blob
+
+  // NRN Catalog integration
+  catalogTrackId?: string;
+  catalogSource?: 'nrn-catalog';
+  isrc?: string;
+  catalogSyncedAt?: string;
   synthPreset?: 'lofi' | 'synthwave' | 'house' | 'ambient' | 'trap' | 'futurebass' | 'chillhop';
   stems?: {
     drums?: boolean;
@@ -74,6 +80,20 @@ export interface Artist {
     website?: string;
   };
 }
+
+export interface UserProfile {
+  id: string;
+  username: string | null;
+  displayName: string;
+  avatarUrl: string;
+  bannerUrl: string;
+  bio: string;
+  location: string;
+  isVerified: boolean;
+  termsAcceptedAt: string | null;
+}
+
+export type LegalDocument = 'terms' | 'privacy' | 'community' | 'copyright';
 
 export type ActiveTab = 'discover' | 'stream' | 'library' | 'upload' | 'artist' | 'track-detail';
 
