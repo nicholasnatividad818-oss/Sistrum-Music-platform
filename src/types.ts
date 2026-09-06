@@ -75,7 +75,7 @@ export interface Artist {
   };
 }
 
-export type ActiveTab = 'discover' | 'stream' | 'library' | 'upload' | 'artist' | 'track-detail';
+export type ActiveTab = 'discover' | 'stream' | 'music' | 'library' | 'upload' | 'artist' | 'track-detail';
 
 export interface EqualizerSettings {
   low: number;   // -12dB to +12dB
