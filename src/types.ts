@@ -75,7 +75,33 @@ export interface Artist {
   };
 }
 
-export type ActiveTab = 'discover' | 'stream' | 'music' | 'library' | 'upload' | 'artist' | 'track-detail';
+export type ActiveTab = 'discover' | 'stream' | 'music' | 'library' | 'pios' | 'upload' | 'artist' | 'track-detail';
+
+export type PIOSIntentScope = 'private' | 'direct' | 'circle';
+export type PIOSIntentSource = 'text' | 'voice' | 'gesture' | 'semg' | 'eeg';
+export type PIOSIntentStatus = 'draft' | 'ready' | 'sent' | 'blocked';
+
+export interface PIOSIntent {
+  id: string;
+  senderId: string;
+  recipientId?: string;
+  scope: PIOSIntentScope;
+  source: PIOSIntentSource;
+  rawInput?: string;
+  semanticPayload: string;
+  confidence: number;
+  status: PIOSIntentStatus;
+  requiresExplicitSend: boolean;
+  createdAt: string;
+  sentAt?: string;
+}
+
+export interface PIOSConsentPolicy {
+  allowDirectIntents: boolean;
+  allowCircleIntents: boolean;
+  requireExplicitSend: boolean;
+  retainRawInput: boolean;
+}
 
 export interface EqualizerSettings {
   low: number;   // -12dB to +12dB
