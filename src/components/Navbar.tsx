@@ -107,19 +107,6 @@ export function Navbar({
             >
               Library
             </button>
-
-            <button
-              id="nav-tab-pios"
-              onClick={() => onSelectTab('pios')}
-              className={`px-4 py-2 rounded-xl text-xs font-extrabold uppercase tracking-wider transition-all flex items-center gap-1.5 ${
-                activeTab === 'pios'
-                  ? 'bg-[#ff5500]/15 text-[#ff7a45] shadow-sm'
-                  : 'text-neutral-400 hover:text-white hover:bg-neutral-800/50'
-              }`}
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              PIOS
-            </button>
           </nav>
         </div>
 
@@ -235,7 +222,7 @@ export function Navbar({
                   </div>
                   <div className="p-2 rounded-lg bg-neutral-950/60 border border-neutral-800/60">
                     <p className="font-semibold text-white">StudyBuddy liked your comment</p>
-                    <p className="text-[10px] text-neutral-400">\"Passed finals listening to this\" • 4h ago</p>
+                    <p className="text-[10px] text-neutral-400">"Passed finals listening to this" • 4h ago</p>
                   </div>
                 </div>
               </div>
