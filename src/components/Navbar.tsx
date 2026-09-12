@@ -97,6 +97,18 @@ export function Navbar({
             </button>
 
             <button
+              id="nav-tab-vault"
+              onClick={() => onSelectTab('vault')}
+              className={`px-4 py-2 rounded-xl text-xs font-extrabold uppercase tracking-wider transition-all ${
+                activeTab === 'vault' || activeTab === 'deal'
+                  ? 'bg-neutral-800 text-white shadow-sm'
+                  : 'text-neutral-400 hover:text-white hover:bg-neutral-800/50'
+              }`}
+            >
+              Vault
+            </button>
+
+            <button
               id="nav-tab-library"
               onClick={() => onSelectTab('library')}
               className={`px-4 py-2 rounded-xl text-xs font-extrabold uppercase tracking-wider transition-all ${

@@ -20,6 +20,10 @@ import { UploadModal } from './components/UploadModal';
 import { QueueDrawer } from './components/QueueDrawer';
 import { ShareModal } from './components/ShareModal';
 import { PlaylistModal } from './components/PlaylistModal';
+import { VaultView } from './components/VaultView';
+import { DealView } from './components/DealView';
+import { LicenseModal } from './components/LicenseModal';
+import { useEscrow } from './hooks/useEscrow';
 
 export default function App() {
   // --- Data State ---
@@ -78,6 +82,14 @@ export default function App() {
   const [isQueueOpen, setIsQueueOpen] = useState(false);
   const [shareModalTrack, setShareModalTrack] = useState<Track | null>(null);
   const [playlistModalTrack, setPlaylistModalTrack] = useState<Track | null>(null);
+
+  const escrow = useEscrow(tracks);
+
+  useEffect(() => {
+    if (!escrow.notice) return;
+    const id = window.setTimeout(escrow.clearNotice, 3200);
+    return () => window.clearTimeout(id);
+  }, [escrow.notice, escrow.clearNotice]);
 
   // Sync to LocalStorage
   useEffect(() => {
@@ -388,6 +400,12 @@ export default function App() {
         isPlaying={isPlaying}
       />
 
+      {escrow.notice && (
+        <div className="border-b border-neutral-800 bg-neutral-900 text-center text-xs py-2 px-4 text-neutral-300">
+          {escrow.notice}
+        </div>
+      )}
+
       {/* Main Content Body */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 pt-6">
         {activeTab === 'discover' && (
@@ -477,6 +495,7 @@ export default function App() {
             onOpenArtistProfile={handleOpenArtistProfile}
             relatedTracks={tracks.filter((t) => t.id !== selectedTrack.id && t.genre === selectedTrack.genre)}
             onSelectTrack={handleOpenTrackDetail}
+            onOpenLicense={() => escrow.setLicenseOpen(true, selectedTrack.id)}
           />
         )}
 
@@ -500,6 +519,44 @@ export default function App() {
             onOpenShareModal={(t) => setShareModalTrack(t)}
           />
         )}
+
+        {activeTab === 'vault' && (
+          <VaultView
+            tracks={tracks}
+            deals={escrow.deals}
+            txs={escrow.txs}
+            wallet={escrow.wallet}
+            blockNumber={escrow.blockNumber}
+            onOpenDeal={(id) => {
+              escrow.setSelectedDealId(id);
+              setActiveTab('deal');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            onOpenLicense={() => escrow.setLicenseOpen(true)}
+            onConnect={escrow.connectWallet}
+            onDisconnect={escrow.disconnectWallet}
+            onFaucet={escrow.faucet}
+          />
+        )}
+
+        {activeTab === 'deal' && escrow.selectedDealId && (() => {
+          const deal = escrow.deals.find((d) => d.id === escrow.selectedDealId);
+          if (!deal) return null;
+          const track = tracks.find((t) => t.id === deal.trackId);
+          const seller = artists.find((a) => a.id === deal.sellerId);
+          return (
+            <DealView
+              deal={deal}
+              track={track}
+              seller={seller}
+              txs={escrow.txs}
+              walletConnected={escrow.wallet.connected}
+              onBack={() => setActiveTab('vault')}
+              onOpenTrack={handleOpenTrackDetail}
+              onAct={(action, extra) => escrow.actOnDeal(deal.id, action, extra)}
+            />
+          );
+        })()}
       </main>
 
       {/* Docked Global Bottom Player Bar */}
@@ -590,6 +647,22 @@ export default function App() {
           onToggleTrackInPlaylist={handleToggleTrackInPlaylist}
         />
       )}
+
+      <LicenseModal
+        isOpen={escrow.licenseOpen}
+        tracks={tracks}
+        preselectedTrackId={escrow.licenseTrackId}
+        balanceEth={escrow.wallet.balanceEth}
+        onClose={() => escrow.setLicenseOpen(false)}
+        onCreate={(input) => {
+          const result = escrow.createDeal(input);
+          if (!('error' in result)) {
+            setActiveTab('deal');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }
+          return result;
+        }}
+      />
     </div>
   );
 }

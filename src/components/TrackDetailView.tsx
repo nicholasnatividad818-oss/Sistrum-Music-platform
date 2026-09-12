@@ -16,7 +16,8 @@ import {
   Music,
   Tag,
   Clock,
-  ThumbsUp
+  ThumbsUp,
+  Shield
 } from 'lucide-react';
 
 interface TrackDetailViewProps {
@@ -40,6 +41,7 @@ interface TrackDetailViewProps {
   onOpenArtistProfile: (artistId: string) => void;
   relatedTracks: Track[];
   onSelectTrack: (track: Track) => void;
+  onOpenLicense?: () => void;
 }
 
 export function TrackDetailView({
@@ -62,7 +64,8 @@ export function TrackDetailView({
   onOpenShareModal,
   onOpenArtistProfile,
   relatedTracks,
-  onSelectTrack
+  onSelectTrack,
+  onOpenLicense
 }: TrackDetailViewProps) {
   const isPlayingThis = isCurrentlyPlaying && isPlayingGlobal;
   const [commentText, setCommentText] = useState('');
@@ -249,6 +252,16 @@ export function TrackDetailView({
                 <Plus className="w-4 h-4" />
                 <span>Add to Playlist</span>
               </button>
+
+              {onOpenLicense && (
+                <button
+                  onClick={onOpenLicense}
+                  className="px-3.5 py-2 rounded-xl bg-neutral-950 border border-[#ff5500]/40 hover:border-[#ff5500] text-[#ff5500] text-xs font-bold flex items-center gap-2 transition-all"
+                >
+                  <Shield className="w-4 h-4" />
+                  <span>License in escrow</span>
+                </button>
+              )}
             </div>
 
             {/* Play counter */}
