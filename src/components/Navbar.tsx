@@ -201,6 +201,7 @@ export function Navbar({
 
         {/* Right: Upload Button & Profile */}
         <div className="flex items-center gap-3">
+          <button id="nav-tab-spotify" onClick={() => onSelectTab('spotify')} aria-current={activeTab === 'spotify' ? 'page' : undefined} className="px-3 py-2 rounded-xl text-green-400 hover:bg-neutral-800 text-xs font-bold">Spotify</button>
           {/* Upload Button */}
           <button
             id="nav-upload-btn"

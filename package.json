@@ -8,7 +8,9 @@
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "dev:spotify": "vite --port=8000 --strictPort --host=127.0.0.1",
+    "test:spotify": "node --test tests/spotify.test.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
