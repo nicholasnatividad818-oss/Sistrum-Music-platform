@@ -137,6 +137,7 @@ export function useEscrow(tracks: Track[]) {
 
   const persistRef = useRef({ deals, txs, blocks, wallet, blockNumber, blockHash });
   persistRef.current = { deals, txs, blocks, wallet, blockNumber, blockHash };
+  const blockRef = useRef({ number: boot.current.blockNumber, hash: boot.current.blockHash });
 
   useEffect(() => {
     try {
@@ -147,38 +148,26 @@ export function useEscrow(tracks: Track[]) {
   }, [deals, txs, blocks, wallet, blockNumber, blockHash]);
 
   const confirmTx = useCallback((hash: string) => {
-    setTxs((prev) => {
-      const tx = prev.find((t) => t.hash === hash);
-      if (!tx || tx.status !== 'pending') return prev;
-      setBlockNumber((n) => {
-        const number = n + 1;
-        setBlockHash((parent) => {
-          const hashBlock = blockHashFrom(`${number}:${parent}:${hash}`);
-          setBlocks((b) => [
-            ...b.slice(-18),
-            {
-              number,
-              hash: hashBlock,
-              parentHash: parent,
-              timestamp: Date.now(),
-              txHashes: [hash],
-              gasUsed: tx.gasUsed,
-            },
-          ]);
-          return hashBlock;
-        });
-        setNotice(`${tx.method} confirmed in block ${number.toLocaleString()}`);
-        return number;
-      });
-      return prev.map((t) => (t.hash === hash ? { ...t, status: 'success' as const, blockNumber: t.blockNumber } : t));
-    });
-    setTxs((prev) =>
-      prev.map((t) =>
-        t.hash === hash && t.status === 'pending'
-          ? { ...t, status: 'success', blockNumber: persistRef.current.blockNumber + 1 }
-          : t,
-      ),
-    );
+    const tx = persistRef.current.txs.find((t) => t.hash === hash);
+    if (!tx || tx.status !== 'pending') return;
+    const number = blockRef.current.number + 1;
+    const hashBlock = blockHashFrom(`${number}:${blockRef.current.hash}:${hash}`);
+    blockRef.current = { number, hash: hashBlock };
+    setTxs((prev) => prev.map((t) => (t.hash === hash ? { ...t, status: 'success' as const, blockNumber: number } : t)));
+    setBlocks((b) => [
+      ...b.slice(-18),
+      {
+        number,
+        hash: hashBlock,
+        parentHash: persistRef.current.blockHash,
+        timestamp: Date.now(),
+        txHashes: [hash],
+        gasUsed: tx.gasUsed,
+      },
+    ]);
+    setBlockNumber(number);
+    setBlockHash(hashBlock);
+    setNotice(`${tx.method} confirmed in block ${number.toLocaleString()}`);
   }, []);
 
   const mineLater = useCallback(
