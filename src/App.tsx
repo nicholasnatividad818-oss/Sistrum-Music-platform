@@ -7,6 +7,8 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Track, Artist, Playlist, Comment, ActiveTab, EqualizerSettings } from './types';
 import { MOCK_TRACKS, MOCK_ARTISTS, MOCK_PLAYLISTS, MOCK_COMMENTS, CURRENT_USER } from './data/mockData';
 import { audioEngine } from './services/audioEngine';
+import { SpotifyView } from './components/SpotifyView';
+import { hasSpotifyCallback } from './services/spotify';
 import { Navbar } from './components/Navbar';
 import { DiscoverView } from './components/DiscoverView';
 import { StreamView } from './components/StreamView';
@@ -46,7 +48,7 @@ export default function App() {
   const [followedArtistIds, setFollowedArtistIds] = useState<string[]>(CURRENT_USER.followingArtistIds);
 
   // --- Active Tab Navigation & Views ---
-  const [activeTab, setActiveTab] = useState<ActiveTab>('discover');
+  const [activeTab, setActiveTab] = useState<ActiveTab>(() => hasSpotifyCallback() ? 'spotify' : 'discover');
   const [selectedArtistId, setSelectedArtistId] = useState<string | null>(null);
   const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
 
@@ -408,6 +410,7 @@ export default function App() {
 
       {/* Main Content Body */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 pt-6">
+        {activeTab === 'spotify' && <SpotifyView />}
         {activeTab === 'discover' && (
           <DiscoverView
             tracks={tracks}
