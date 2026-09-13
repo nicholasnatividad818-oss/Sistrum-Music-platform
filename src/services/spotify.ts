@@ -2,6 +2,7 @@
 export const SPOTIFY_CLIENT_ID = import.meta.env.VITE_SPOTIFY_CLIENT_ID || 'ab765959ac7748f992e5394dc6626ef4';
 export const NRN_SPOTIFY_ARTIST_ID = '6R3hYzwo70wQn0YINK7oFu';
 const SESSION_KEY = 'sistrum.spotify.session.v1';
+const PROFILE_KEY = 'sistrum.spotify.account.v1';
 const PENDING_KEY = 'sistrum.spotify.pending.v1';
 const API = 'https://api.spotify.com/v1/';
 const TOKEN_URL = 'https://accounts.spotify.com/api/token';
@@ -15,14 +16,33 @@ export type SpotifyPage<T> = { items: T[]; next: string | null; total?: number }
 export class SpotifyError extends Error {
   constructor(message: string, public status = 0, public retryAfter = 0) { super(message); }
 }
-function read<T>(key: string): T | null {
+function readSessionStorage<T>(key: string): T | null {
   try { return JSON.parse(sessionStorage.getItem(key) || 'null'); } catch { return null; }
 }
-export function isSpotifyConnected() { return Boolean(read<Session>(SESSION_KEY)?.access_token); }
+function readPersistent<T>(key: string): T | null {
+  try {
+    const raw = localStorage.getItem(key) || sessionStorage.getItem(key);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+function writePersistent(key: string, value: unknown) {
+  const raw = JSON.stringify(value);
+  localStorage.setItem(key, raw);
+  sessionStorage.removeItem(key);
+}
+function clearPersistent(key: string) {
+  localStorage.removeItem(key);
+  sessionStorage.removeItem(key);
+}
+export function isSpotifyConnected() { return Boolean(readPersistent<Session>(SESSION_KEY)?.access_token); }
+export function getSavedSpotifyAccount(): SpotifyProfile | null {
+  return readPersistent<SpotifyProfile>(PROFILE_KEY);
+}
 let generation = 0;
 export function disconnectSpotify() {
   generation++;
-  sessionStorage.removeItem(SESSION_KEY);
+  clearPersistent(SESSION_KEY);
+  clearPersistent(PROFILE_KEY);
   sessionStorage.removeItem(PENDING_KEY);
 }
 export function spotifyRedirectUri() {
@@ -45,7 +65,6 @@ export async function connectSpotify() {
   const challenge = btoa(String.fromCharCode(...new Uint8Array(digest))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   sessionStorage.setItem(PENDING_KEY, JSON.stringify({ verifier, state, redirect, created: Date.now() } satisfies Pending));
   const params = new URLSearchParams({ client_id: SPOTIFY_CLIENT_ID, response_type: 'code', redirect_uri: redirect, state, code_challenge_method: 'S256', code_challenge: challenge });
-  // Public catalog and basic /me profile need no extra private-data or write scopes.
   window.location.assign(`https://accounts.spotify.com/authorize?${params}`);
 }
 async function exchange(params: URLSearchParams): Promise<Session> {
@@ -59,13 +78,21 @@ export function hasSpotifyCallback() {
   const params = new URLSearchParams(window.location.search);
   return params.has('state') && (params.has('code') || params.has('error'));
 }
+async function rememberAccount() {
+  try {
+    const profile = await getSpotifyProfile();
+    writePersistent(PROFILE_KEY, { ...profile, account_id: profile.account_id || profile.id });
+  } catch {
+    /* profile cache is best-effort */
+  }
+}
 let callbackPromise: Promise<boolean> | undefined;
 export function finishSpotifyConnection(): Promise<boolean> {
   if (callbackPromise) return callbackPromise;
   if (!hasSpotifyCallback()) return Promise.resolve(false);
   callbackPromise = (async () => {
     const params = new URLSearchParams(window.location.search);
-    const pending = read<Pending>(PENDING_KEY);
+    const pending = readSessionStorage<Pending>(PENDING_KEY);
     const url = new URL(window.location.href);
     ['code', 'state', 'error', 'error_description'].forEach(key => url.searchParams.delete(key));
     window.history.replaceState({}, '', url.pathname + url.search + url.hash);
@@ -75,14 +102,15 @@ export function finishSpotifyConnection(): Promise<boolean> {
     const current = generation;
     const session = await exchange(new URLSearchParams({ client_id: SPOTIFY_CLIENT_ID, grant_type: 'authorization_code', code: params.get('code')!, redirect_uri: pending.redirect, code_verifier: pending.verifier }));
     if (current !== generation) throw new SpotifyError('Spotify was disconnected.');
-    sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    writePersistent(SESSION_KEY, session);
+    await rememberAccount();
     return true;
   })();
   return callbackPromise;
 }
 let refreshPromise: Promise<Session> | undefined;
 async function token(force = false): Promise<string> {
-  const session = read<Session>(SESSION_KEY);
+  const session = readPersistent<Session>(SESSION_KEY);
   if (!session) throw new SpotifyError('Connect Spotify to continue.', 401);
   if (!force && session.expires_at > Date.now() + 60000) return session.access_token;
   if (!session.refresh_token) { disconnectSpotify(); throw new SpotifyError('Your Spotify session expired. Connect again.', 401); }
@@ -92,7 +120,7 @@ async function token(force = false): Promise<string> {
       .then(next => {
         if (generation !== current) throw new SpotifyError('Spotify was disconnected.');
         next.refresh_token ||= session.refresh_token;
-        sessionStorage.setItem(SESSION_KEY, JSON.stringify(next));
+        writePersistent(SESSION_KEY, next);
         return next;
       }).catch(error => {
         if (generation === current && error instanceof SpotifyError && [400, 401].includes(error.status)) disconnectSpotify();
