@@ -11,8 +11,14 @@ function sistrumGeneratePlugin(): Plugin {
         const url = req.url?.split('?')[0] || '';
         if (url !== '/api/generate') return next();
         if (req.method !== 'POST' && req.method !== 'OPTIONS') return next();
-        const mod = await import('./api/generate.js');
-        return mod.default(req, res);
+        try {
+          const mod = await import('./api/generate.js');
+          return mod.default(req, res);
+        } catch (error) {
+          res.statusCode = 500;
+          res.setHeader('Content-Type', 'application/json');
+          res.end(JSON.stringify({ error: error instanceof Error ? error.message : 'Generate API failed.' }));
+        }
       });
     }
   };
