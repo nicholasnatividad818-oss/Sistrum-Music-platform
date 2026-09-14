@@ -77,6 +77,7 @@ function mapTrack(
     commentCount: Number(row.comment_count),
     releaseDate: relativeDate(row.release_date),
     description: row.description || undefined,
+    lyrics: row.lyrics || undefined,
     isLiked: liked.has(row.id),
     isReposted: reposted.has(row.id),
     audioUrl: row.audio_url || undefined,
@@ -261,6 +262,18 @@ function safeFileName(file: File) {
   return `${crypto.randomUUID()}.${extension}`;
 }
 
+export function dataUrlToCoverFile(dataUrl: string | undefined | null): File | null {
+  if (!dataUrl) return null;
+  const match = dataUrl.match(/^data:(image\/[\w+.-]+);base64,(.+)$/);
+  if (!match) return null;
+  const mime = match[1];
+  const binary = atob(match[2]);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+  const extension = mime.includes('png') ? 'png' : mime.includes('webp') ? 'webp' : 'jpg';
+  return new File([bytes], `cover.${extension}`, { type: mime });
+}
+
 export interface PublishTrackInput {
   user: User;
   profile: UserProfile | null;
@@ -269,6 +282,7 @@ export interface PublishTrackInput {
   genre: string;
   tags: string[];
   description: string;
+  lyrics?: string;
   duration: number;
   waveformData: number[];
   audioFile?: File | null;
@@ -326,6 +340,7 @@ export async function publishTrack(input: PublishTrackInput): Promise<void> {
       tags: input.tags,
       waveform_data: input.waveformData,
       description: input.description.trim(),
+      lyrics: input.lyrics?.trim() || null,
       synth_preset: input.synthPreset || 'synthwave',
       is_public: true,
       release_date: new Date().toISOString(),
@@ -338,6 +353,55 @@ export async function publishTrack(input: PublishTrackInput): Promise<void> {
     }
     throw error;
   }
+}
+
+export async function updateTrack(
+  userId: string,
+  trackId: string,
+  patch: Partial<Pick<Track, 'title' | 'lyrics' | 'coverArt' | 'genre' | 'description'>>
+): Promise<void> {
+  const updates: {
+    title?: string;
+    lyrics?: string | null;
+    cover_art_url?: string;
+    genre?: string;
+    description?: string;
+    updated_at: string;
+  } = { updated_at: new Date().toISOString() };
+
+  if (patch.title !== undefined) {
+    const title = patch.title.trim();
+    if (!title || title.length > 200) throw new Error('Enter a title of 1–200 characters.');
+    updates.title = title;
+  }
+  if (patch.genre !== undefined) updates.genre = patch.genre;
+  if (patch.description !== undefined) updates.description = patch.description;
+  if (patch.lyrics !== undefined) updates.lyrics = patch.lyrics;
+
+  const generatedCover = dataUrlToCoverFile(patch.coverArt);
+  if (generatedCover) {
+    if (generatedCover.size > 10 * 1024 * 1024) throw new Error('Cover art must be under 10 MB.');
+    const path = `${userId}/${safeFileName(generatedCover)}`;
+    const { error } = await supabase.storage.from('cover-art').upload(path, generatedCover, {
+      cacheControl: '3600',
+      contentType: generatedCover.type || 'image/jpeg',
+      upsert: false,
+    });
+    if (error) throw error;
+    updates.cover_art_url = supabase.storage.from('cover-art').getPublicUrl(path).data.publicUrl;
+  } else if (patch.coverArt?.startsWith('https://')) {
+    updates.cover_art_url = patch.coverArt;
+  }
+
+  const { error, data } = await supabase
+    .from('tracks')
+    .update(updates)
+    .eq('id', trackId)
+    .eq('owner_id', userId)
+    .select('id')
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error('Only the track owner can update lyrics and cover art.');
 }
 
 export async function reportTrack(

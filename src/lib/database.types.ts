@@ -290,6 +290,7 @@ export type Database = {
           is_public: boolean
           isrc: string | null
           like_count: number
+          lyrics: string | null
           owner_id: string
           play_count: number
           release_date: string
@@ -318,6 +319,7 @@ export type Database = {
           is_public?: boolean
           isrc?: string | null
           like_count?: number
+          lyrics?: string | null
           owner_id: string
           play_count?: number
           release_date?: string
@@ -346,6 +348,7 @@ export type Database = {
           is_public?: boolean
           isrc?: string | null
           like_count?: number
+          lyrics?: string | null
           owner_id?: string
           play_count?: number
           release_date?: string
