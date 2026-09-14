@@ -301,6 +301,12 @@ export default function App() {
     );
   };
 
+  const handleUpdateTrack = (trackId: string, patch: Partial<Track>) => {
+    setTracks((prev) => prev.map((t) => (t.id === trackId ? { ...t, ...patch } : t)));
+    setSelectedTrack((prev) => (prev && prev.id === trackId ? { ...prev, ...patch } : prev));
+    setCurrentTrack((prev) => (prev && prev.id === trackId ? { ...prev, ...patch } : prev));
+  };
+
   // Add newly uploaded/composed track
   const handleTrackCreated = (newTrack: Track) => {
     setTracks((prev) => [newTrack, ...prev]);
@@ -499,6 +505,7 @@ export default function App() {
             relatedTracks={tracks.filter((t) => t.id !== selectedTrack.id && t.genre === selectedTrack.genre)}
             onSelectTrack={handleOpenTrackDetail}
             onOpenLicense={() => escrow.setLicenseOpen(true, selectedTrack.id)}
+            onUpdateTrack={(patch) => handleUpdateTrack(selectedTrack.id, patch)}
           />
         )}
 
