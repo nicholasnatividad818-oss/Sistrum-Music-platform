@@ -15,6 +15,9 @@ jobs:
           name: Type check
           command: npm run lint
       - run:
+          name: Test
+          command: npm run test:spotify
+      - run:
           name: Build
           command: npm run build
 
