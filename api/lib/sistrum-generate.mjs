@@ -1,6 +1,9 @@
 const TEXT_MODEL = 'gemini-3.8-flash';
 const IMAGE_MODEL = 'gemini-3.1-flash-image';
-const INTERACTIONS_URL = 'https://generativelanguage.googleapis.com/v1beta2/interactions';
+const INTERACTIONS_URLS = [
+  'https://generativelanguage.googleapis.com/v1beta/interactions',
+  'https://generativelanguage.googleapis.com/v1beta2/interactions'
+];
 
 const GENRES = [
   'Electronic', 'Synthwave', 'Lo-Fi', 'House', 'Ambient', 'Trap',
@@ -54,57 +57,89 @@ export function buildCoverPrompt({ title, artist, genre, mood, theme, lyrics }) 
   ].join(' ');
 }
 
+export function coverRequestPayload(input) {
+  return {
+    model: IMAGE_MODEL,
+    input: buildCoverPrompt(input),
+    response_format: {
+      type: 'image',
+      mime_type: 'image/jpeg',
+      aspect_ratio: '1:1',
+      image_size: '1K'
+    }
+  };
+}
+
 function getApiKey() {
   const key = process.env.GEMINI_API_KEY || '';
   if (!key || key === 'MY_GEMINI_API_KEY') {
-    const err = new Error('Gemini is not configured. Add GEMINI_API_KEY on the server.');
+    const err = new Error(
+      'Gemini is not configured. Add GEMINI_API_KEY on Vercel (Production + Preview), then redeploy.'
+    );
     err.status = 503;
     throw err;
   }
   return key;
 }
 
-async function createInteraction(payload) {
-  const response = await fetch(INTERACTIONS_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-goog-api-key': getApiKey()
-    },
-    body: JSON.stringify(payload)
-  });
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const message = data.error?.message || data.message || `Gemini request failed (${response.status}).`;
-    const err = new Error(message);
-    err.status = response.status === 429 ? 429 : 502;
-    throw err;
-  }
-  return data;
+function failFromHttp(status, data) {
+  const message = data.error?.message || data.message || `Gemini request failed (${status}).`;
+  const err = new Error(message);
+  err.status = status === 429 ? 429 : 502;
+  return err;
 }
 
-function readOutputText(interaction) {
+async function createInteraction(payload) {
+  const key = getApiKey();
+  let lastNotFound = null;
+  for (const url of INTERACTIONS_URLS) {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': key
+      },
+      body: JSON.stringify(payload)
+    });
+    const data = await response.json().catch(() => ({}));
+    if (response.status === 404) {
+      lastNotFound = failFromHttp(404, data);
+      continue;
+    }
+    if (!response.ok) throw failFromHttp(response.status, data);
+    if (data.status && data.status !== 'completed') {
+      const err = new Error(data.error?.message || `Gemini interaction ${data.status}.`);
+      err.status = 502;
+      throw err;
+    }
+    return data;
+  }
+  throw lastNotFound || new Error('Gemini Interactions endpoint not found.');
+}
+
+export function readOutputText(interaction) {
   if (typeof interaction.output_text === 'string' && interaction.output_text.trim()) {
     return interaction.output_text.trim();
   }
   const steps = interaction.steps || interaction.outputs || [];
   const chunks = [];
   for (const step of steps) {
+    if (step?.type && step.type !== 'model_output' && step.type !== 'text') continue;
     const blocks = step.content || (step.type === 'text' ? [step] : []);
     for (const block of blocks) {
       if (block?.type === 'text' && block.text) chunks.push(block.text);
-      else if (typeof block?.text === 'string') chunks.push(block.text);
+      else if (typeof block?.text === 'string' && !block.type) chunks.push(block.text);
     }
   }
   return chunks.join('').trim();
 }
 
-function readOutputImage(interaction) {
+export function readOutputImage(interaction) {
   const direct = interaction.output_image;
   if (direct?.data) {
     return {
       data: direct.data,
-      mimeType: direct.mime_type || direct.mimeType || 'image/png'
+      mimeType: direct.mime_type || direct.mimeType || 'image/jpeg'
     };
   }
   const steps = interaction.steps || interaction.outputs || [];
@@ -114,7 +149,7 @@ function readOutputImage(interaction) {
       if (block?.type === 'image' && block.data) {
         return {
           data: block.data,
-          mimeType: block.mime_type || block.mimeType || 'image/png'
+          mimeType: block.mime_type || block.mimeType || 'image/jpeg'
         };
       }
     }
@@ -134,18 +169,10 @@ export async function generateSistrumAsset(rawBody) {
     return { kind: 'lyrics', lyrics };
   }
 
-  const interaction = await createInteraction({
-    model: IMAGE_MODEL,
-    input: buildCoverPrompt(input),
-    response_format: {
-      type: 'image',
-      aspect_ratio: '1:1',
-      image_size: '1K'
-    }
-  });
+  const interaction = await createInteraction(coverRequestPayload(input));
   const image = readOutputImage(interaction);
   if (!image?.data) throw new Error('Gemini returned no cover image.');
-  const mimeType = image.mimeType.startsWith('image/') ? image.mimeType : 'image/png';
+  const mimeType = image.mimeType.startsWith('image/') ? image.mimeType : 'image/jpeg';
   return {
     kind: 'cover',
     mimeType,
@@ -153,4 +180,4 @@ export async function generateSistrumAsset(rawBody) {
   };
 }
 
-export { GENRES, TEXT_MODEL, IMAGE_MODEL };
+export { GENRES, TEXT_MODEL, IMAGE_MODEL, INTERACTIONS_URLS };

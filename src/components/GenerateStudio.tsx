@@ -29,9 +29,9 @@ export function GenerateStudio({ initial, submitLabel, onSubmit }: GenerateStudi
   const [busy, setBusy] = useState<'lyrics' | 'cover' | 'both' | null>(null);
   const [error, setError] = useState('');
 
-  const payload = { title, artist, genre, mood, theme, lyrics };
+  const fields = () => ({ title, artist, genre, mood, theme, lyrics });
 
-  const run = async (kind: 'lyrics' | 'cover' | 'both') => {
+  const run = async (kind: 'lyrics' | 'cover') => {
     setError('');
     if (!title.trim()) {
       setError('Give the track a title first.');
@@ -39,22 +39,11 @@ export function GenerateStudio({ initial, submitLabel, onSubmit }: GenerateStudi
     }
     setBusy(kind);
     try {
-      if (kind === 'lyrics' || kind === 'both') {
-        const result = await generateSistrum({ kind: 'lyrics', ...payload });
-        if (result.kind === 'lyrics') setLyrics(result.lyrics);
-      }
-      if (kind === 'cover' || kind === 'both') {
-        const latestLyrics = kind === 'both' ? undefined : lyrics;
-        const result = await generateSistrum({
-          kind: 'cover',
-          ...payload,
-          lyrics: kind === 'both' ? undefined : latestLyrics
-        });
-        if (result.kind === 'cover') setCoverArt(result.imageDataUrl);
-      }
+      const result = await generateSistrum({ kind, ...fields() });
+      if (result.kind === 'lyrics') setLyrics(result.lyrics);
+      if (result.kind === 'cover') setCoverArt(result.imageDataUrl);
     } catch (err) {
-      const message = err instanceof GenerateError ? err.message : 'Generation failed.';
-      setError(message);
+      setError(err instanceof GenerateError ? err.message : 'Generation failed.');
     } finally {
       setBusy(null);
     }
@@ -70,13 +59,13 @@ export function GenerateStudio({ initial, submitLabel, onSubmit }: GenerateStudi
     try {
       let nextLyrics = lyrics;
       if (!nextLyrics.trim()) {
-        const result = await generateSistrum({ kind: 'lyrics', ...payload });
+        const result = await generateSistrum({ kind: 'lyrics', ...fields() });
         if (result.kind === 'lyrics') {
           nextLyrics = result.lyrics;
           setLyrics(nextLyrics);
         }
       }
-      const cover = await generateSistrum({ kind: 'cover', ...payload, lyrics: nextLyrics });
+      const cover = await generateSistrum({ kind: 'cover', ...fields(), lyrics: nextLyrics });
       if (cover.kind === 'cover') setCoverArt(cover.imageDataUrl);
     } catch (err) {
       setError(err instanceof GenerateError ? err.message : 'Generation failed.');

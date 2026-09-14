@@ -95,15 +95,27 @@ export default function App() {
 
   // Sync to LocalStorage
   useEffect(() => {
-    localStorage.setItem('soundwave_tracks', JSON.stringify(tracks));
+    try {
+      localStorage.setItem('soundwave_tracks', JSON.stringify(tracks));
+    } catch {
+      // QuotaExceeded — generated covers are compressed but catalogs can still overflow
+    }
   }, [tracks]);
 
   useEffect(() => {
-    localStorage.setItem('soundwave_playlists', JSON.stringify(playlists));
+    try {
+      localStorage.setItem('soundwave_playlists', JSON.stringify(playlists));
+    } catch {
+      /* ignore quota */
+    }
   }, [playlists]);
 
   useEffect(() => {
-    localStorage.setItem('soundwave_comments', JSON.stringify(commentsMap));
+    try {
+      localStorage.setItem('soundwave_comments', JSON.stringify(commentsMap));
+    } catch {
+      /* ignore quota */
+    }
   }, [commentsMap]);
 
   // Audio Engine Callbacks Setup
