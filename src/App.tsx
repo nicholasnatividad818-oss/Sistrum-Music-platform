@@ -95,15 +95,27 @@ export default function App() {
 
   // Sync to LocalStorage
   useEffect(() => {
-    localStorage.setItem('soundwave_tracks', JSON.stringify(tracks));
+    try {
+      localStorage.setItem('soundwave_tracks', JSON.stringify(tracks));
+    } catch {
+      // QuotaExceeded — generated covers are compressed but catalogs can still overflow
+    }
   }, [tracks]);
 
   useEffect(() => {
-    localStorage.setItem('soundwave_playlists', JSON.stringify(playlists));
+    try {
+      localStorage.setItem('soundwave_playlists', JSON.stringify(playlists));
+    } catch {
+      /* ignore quota */
+    }
   }, [playlists]);
 
   useEffect(() => {
-    localStorage.setItem('soundwave_comments', JSON.stringify(commentsMap));
+    try {
+      localStorage.setItem('soundwave_comments', JSON.stringify(commentsMap));
+    } catch {
+      /* ignore quota */
+    }
   }, [commentsMap]);
 
   // Audio Engine Callbacks Setup
@@ -299,6 +311,12 @@ export default function App() {
     setTracks((prev) =>
       prev.map((t) => (t.id === trackId ? { ...t, commentCount: t.commentCount + 1 } : t))
     );
+  };
+
+  const handleUpdateTrack = (trackId: string, patch: Partial<Track>) => {
+    setTracks((prev) => prev.map((t) => (t.id === trackId ? { ...t, ...patch } : t)));
+    setSelectedTrack((prev) => (prev && prev.id === trackId ? { ...prev, ...patch } : prev));
+    setCurrentTrack((prev) => (prev && prev.id === trackId ? { ...prev, ...patch } : prev));
   };
 
   // Add newly uploaded/composed track
@@ -499,6 +517,7 @@ export default function App() {
             relatedTracks={tracks.filter((t) => t.id !== selectedTrack.id && t.genre === selectedTrack.genre)}
             onSelectTrack={handleOpenTrackDetail}
             onOpenLicense={() => escrow.setLicenseOpen(true, selectedTrack.id)}
+            onUpdateTrack={(patch) => handleUpdateTrack(selectedTrack.id, patch)}
           />
         )}
 

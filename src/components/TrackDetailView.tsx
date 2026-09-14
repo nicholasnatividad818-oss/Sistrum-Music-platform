@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Track, Comment, Artist } from '../types';
 import { Waveform } from './Waveform';
+import { GenerateStudio } from './GenerateStudio';
 import {
   Play,
   Pause,
@@ -42,6 +43,7 @@ interface TrackDetailViewProps {
   relatedTracks: Track[];
   onSelectTrack: (track: Track) => void;
   onOpenLicense?: () => void;
+  onUpdateTrack?: (patch: Partial<Track>) => void;
 }
 
 export function TrackDetailView({
@@ -65,11 +67,13 @@ export function TrackDetailView({
   onOpenArtistProfile,
   relatedTracks,
   onSelectTrack,
-  onOpenLicense
+  onOpenLicense,
+  onUpdateTrack
 }: TrackDetailViewProps) {
   const isPlayingThis = isCurrentlyPlaying && isPlayingGlobal;
   const [commentText, setCommentText] = useState('');
   const [targetCommentTime, setTargetCommentTime] = useState<number | null>(null);
+  const [showGenerator, setShowGenerator] = useState(false);
 
   const activeCommentTimestamp = targetCommentTime !== null ? targetCommentTime : isCurrentlyPlaying ? currentTime : 0;
 
@@ -168,6 +172,15 @@ export function TrackDetailView({
             <div className="absolute top-3 right-3 px-2.5 py-1 rounded-lg bg-black/70 backdrop-blur-sm text-xs font-mono text-white">
               {formatTime(track.duration)}
             </div>
+            {onUpdateTrack && (
+              <button
+                type="button"
+                onClick={() => setShowGenerator(true)}
+                className="absolute bottom-3 left-3 right-3 py-2 rounded-xl bg-black/70 backdrop-blur-sm text-white text-[11px] font-bold opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                New cover / lyrics
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -288,6 +301,48 @@ export function TrackDetailView({
                 </span>
               ))}
             </div>
+          </div>
+
+
+          {/* Lyrics */}
+          <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider">Lyrics</h3>
+              {onUpdateTrack && (
+                <button
+                  type="button"
+                  onClick={() => setShowGenerator((open) => !open)}
+                  className="text-xs font-bold text-[#ff5500] hover:text-[#ff8844]"
+                >
+                  {showGenerator ? 'Close generator' : 'Write with Gemini'}
+                </button>
+              )}
+            </div>
+            {showGenerator && onUpdateTrack ? (
+              <GenerateStudio
+                initial={{
+                  title: track.title,
+                  artist: track.artist,
+                  genre: track.genre,
+                  lyrics: track.lyrics || '',
+                  coverArt: track.coverArt
+                }}
+                submitLabel="Save to this track"
+                onSubmit={(values) => {
+                  onUpdateTrack({
+                    title: values.title || track.title,
+                    lyrics: values.lyrics || track.lyrics,
+                    coverArt: values.coverArt || track.coverArt,
+                    genre: values.genre || track.genre
+                  });
+                  setShowGenerator(false);
+                }}
+              />
+            ) : track.lyrics ? (
+              <pre className="whitespace-pre-wrap font-mono text-xs text-neutral-300 leading-relaxed">{track.lyrics}</pre>
+            ) : (
+              <p className="text-xs text-neutral-500 italic">No lyrics yet. Generate a set and they stay with this track.</p>
+            )}
           </div>
 
           {/* Timed Comments Stream */}
