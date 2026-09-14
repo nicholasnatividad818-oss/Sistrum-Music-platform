@@ -9,6 +9,6 @@
     }
   ],
   "rewrites": [
-    { "source": "/((?!privacy.html|terms.html|sw.js|manifest.webmanifest|icons/).*)", "destination": "/index.html" }
+    { "source": "/((?!api(?:/|$)|assets(?:/|$)|privacy.html|terms.html|sw.js|manifest.webmanifest|icons/).*)", "destination": "/index.html" }
   ]
 }
