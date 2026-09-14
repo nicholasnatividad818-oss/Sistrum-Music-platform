@@ -29,6 +29,7 @@ export interface Track {
   commentCount: number;
   releaseDate: string;
   description?: string;
+  lyrics?: string;
   isLiked?: boolean;
   isReposted?: boolean;
   audioUrl?: string; // If uploaded audio file / blob
