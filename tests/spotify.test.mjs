@@ -6,8 +6,10 @@ const { outputFiles } = await build({ entryPoints: ['src/services/spotify.ts'], 
 let counter = 0;
 async function setup() {
   const storage = new Map();
+  const temporary = new Map();
   Object.defineProperty(globalThis, 'crypto', { value: webcrypto, configurable: true });
-  globalThis.sessionStorage = { getItem: key => storage.get(key) || null, setItem: (key, value) => storage.set(key, value), removeItem: key => storage.delete(key) };
+  globalThis.localStorage = { getItem: key => storage.get(key) || null, setItem: (key, value) => storage.set(key, value), removeItem: key => storage.delete(key) };
+  globalThis.sessionStorage = { getItem: key => temporary.get(key) || null, setItem: (key, value) => temporary.set(key, value), removeItem: key => temporary.delete(key) };
   globalThis.window = { location: { origin: 'http://127.0.0.1:8000', search: '', href: 'http://127.0.0.1:8000/', assign: value => { window.assigned = value; } }, history: { replaceState: (_a, _b, url) => { window.cleaned = url; window.location.search = ''; } } };
   const client = await import(`data:text/javascript;base64,${Buffer.from(outputFiles[0].text + `\n//${counter++}`).toString('base64')}`);
   return { client, storage };
@@ -18,7 +20,7 @@ function session(storage, overrides = {}) {
 const json = (body, status = 200, headers = {}) => new Response(JSON.stringify(body), { status, headers });
 test('PKCE matches S256 challenge and requests no extra scopes or secret', async () => {
   const { client, storage } = await setup(); await client.connectSpotify();
-  const url = new URL(window.assigned); const pending = JSON.parse(storage.get('sistrum.spotify.pending.v1'));
+  const url = new URL(window.assigned); const pending = JSON.parse(sessionStorage.getItem('sistrum.spotify.pending.v1'));
   assert.equal(url.origin, 'https://accounts.spotify.com');
   assert.equal(url.searchParams.get('redirect_uri'), 'http://127.0.0.1:8000');
   assert.equal(url.searchParams.get('state'), pending.state);
@@ -33,12 +35,20 @@ test('rejects bad OAuth state before sending code and removes callback data', as
 });
 test('deduplicates callback exchange and stores session only after successful exchange', async () => {
   const { client, storage } = await setup(); await client.connectSpotify();
-  const pending = JSON.parse(storage.get('sistrum.spotify.pending.v1'));
+  const pending = JSON.parse(sessionStorage.getItem('sistrum.spotify.pending.v1'));
   window.location.search = `?code=private-code&state=${pending.state}`; window.location.href += window.location.search;
   let calls = 0;
-  globalThis.fetch = async (url, options) => { calls++; assert.equal(options.body.get('code_verifier'), pending.verifier); assert.equal(options.body.get('client_secret'), null); return json({ access_token: 'token', refresh_token: 'refresh', expires_in: 3600 }); };
+  globalThis.fetch = async (url, options) => {
+    if (String(url).endsWith('/v1/me')) {
+      assert.equal(options.headers.Authorization, 'Bearer token');
+      return json({ id: 'user', display_name: 'Test Artist' });
+    }
+    calls++; assert.equal(options.body.get('code_verifier'), pending.verifier); assert.equal(options.body.get('client_secret'), null); return json({ access_token: 'token', refresh_token: 'refresh', expires_in: 3600 });
+  };
   assert.deepEqual(await Promise.all([client.finishSpotifyConnection(), client.finishSpotifyConnection()]), [true, true]);
   assert.equal(calls, 1); assert.equal(client.isSpotifyConnected(), true);
+  assert.equal(sessionStorage.getItem('sistrum.spotify.session.v1'), null);
+  assert.equal(client.getSavedSpotifyAccount().display_name, 'Test Artist');
 });
 test('concurrent expired requests share refresh and preserve omitted refresh token', async () => {
   const { client, storage } = await setup(); session(storage, { expires_at: 1 }); let refreshes = 0;

@@ -3,15 +3,33 @@ steps:
     args:
       - build
       - -t
-      - $_AR_HOSTNAME/$PROJECT_ID/$_AR_REPOSITORY/$_SERVICE_NAME:$COMMIT_SHA
+      - $_AR_HOSTNAME/$PROJECT_ID/$_AR_REPOSITORY/$_SERVICE_NAME:$BUILD_ID
+      - --build-arg
+      - VITE_SPOTIFY_CLIENT_ID=$_SPOTIFY_CLIENT_ID
+      - --build-arg
+      - VITE_SPOTIFY_REDIRECT_URI=$_SPOTIFY_REDIRECT_URI
       - -f
       - Dockerfile
       - .
   - name: gcr.io/cloud-builders/docker
     args:
       - push
-      - $_AR_HOSTNAME/$PROJECT_ID/$_AR_REPOSITORY/$_SERVICE_NAME:$COMMIT_SHA
+      - $_AR_HOSTNAME/$PROJECT_ID/$_AR_REPOSITORY/$_SERVICE_NAME:$BUILD_ID
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - $_SERVICE_NAME
+      - --image=$_AR_HOSTNAME/$PROJECT_ID/$_AR_REPOSITORY/$_SERVICE_NAME:$BUILD_ID
+      - --region=$_DEPLOY_REGION
+      - --project=$PROJECT_ID
+      - --port=8080
+      - --quiet
 images:
-  - $_AR_HOSTNAME/$PROJECT_ID/$_AR_REPOSITORY/$_SERVICE_NAME:$COMMIT_SHA
+  - $_AR_HOSTNAME/$PROJECT_ID/$_AR_REPOSITORY/$_SERVICE_NAME:$BUILD_ID
+substitutions:
+  _SPOTIFY_CLIENT_ID: ''
+  _SPOTIFY_REDIRECT_URI: ''
 options:
   logging: CLOUD_LOGGING_ONLY
