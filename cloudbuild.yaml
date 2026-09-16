@@ -5,6 +5,10 @@ steps:
       - -t
       - $_AR_HOSTNAME/$PROJECT_ID/$_AR_REPOSITORY/$_SERVICE_NAME:$BUILD_ID
       - --build-arg
+      - VITE_SUPABASE_URL=$_SUPABASE_URL
+      - --build-arg
+      - VITE_SUPABASE_PUBLISHABLE_KEY=$_SUPABASE_PUBLISHABLE_KEY
+      - --build-arg
       - VITE_SPOTIFY_CLIENT_ID=$_SPOTIFY_CLIENT_ID
       - --build-arg
       - VITE_SPOTIFY_REDIRECT_URI=$_SPOTIFY_REDIRECT_URI
@@ -29,6 +33,8 @@ steps:
 images:
   - $_AR_HOSTNAME/$PROJECT_ID/$_AR_REPOSITORY/$_SERVICE_NAME:$BUILD_ID
 substitutions:
+  _SUPABASE_URL: ''
+  _SUPABASE_PUBLISHABLE_KEY: ''
   _SPOTIFY_CLIENT_ID: ''
   _SPOTIFY_REDIRECT_URI: ''
 options:

@@ -31,6 +31,10 @@ export interface Track {
   description?: string;
   isLiked?: boolean;
   isReposted?: boolean;
+  catalogTrackId?: string;
+  catalogSource?: "nrn-catalog";
+  isrc?: string;
+  catalogSyncedAt?: string;
   audioUrl?: string; // If uploaded audio file / blob
   synthPreset?: 'lofi' | 'synthwave' | 'house' | 'ambient' | 'trap' | 'futurebass' | 'chillhop';
   stems?: {
@@ -94,3 +98,16 @@ export interface BeatStep {
   bass: boolean;
   synth: number | null; // note index or null
 }
+export interface UserProfile {
+  id: string;
+  username: string | null;
+  displayName: string;
+  avatarUrl: string;
+  bannerUrl: string;
+  bio: string;
+  location: string;
+  isVerified: boolean;
+  termsAcceptedAt: string | null;
+}
+
+export type LegalDocument = 'terms' | 'privacy' | 'community' | 'copyright';
