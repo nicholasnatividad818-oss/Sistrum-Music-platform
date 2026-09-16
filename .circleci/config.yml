@@ -1,27 +1,19 @@
 version: 2.1
 
-orbs:
-  node: circleci/node@6.1.0
-
 jobs:
-  build:
+  release-checks:
     docker:
-      - image: cimg/node:22.11
+      - image: cimg/node:22.22
     steps:
       - checkout
-      - node/install-packages:
-          pkg-manager: npm
       - run:
-          name: Type check
-          command: npm run lint
+          name: Install locked dependencies
+          command: npm ci
       - run:
-          name: Test
-          command: npm run test:spotify
-      - run:
-          name: Build
-          command: npm run build
+          name: Check types, tests, and production build
+          command: npm run check
 
 workflows:
-  build:
+  validate:
     jobs:
-      - build
+      - release-checks

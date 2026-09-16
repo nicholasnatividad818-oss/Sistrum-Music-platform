@@ -9,7 +9,7 @@ async function setup() {
   const persistent = new Map();
   Object.defineProperty(globalThis, 'crypto', { value: webcrypto, configurable: true });
   globalThis.sessionStorage = { getItem: key => storage.get(key) || null, setItem: (key, value) => storage.set(key, value), removeItem: key => storage.delete(key) };
-  globalThis.localStorage = { getItem: key => persistent.get(key) || null, setItem: (key, value) => persistent.set(key, value), removeItem: key => persistent.delete(key) };
+  Object.defineProperty(globalThis, 'localStorage', { value: { getItem: key => persistent.get(key) ?? null, setItem: (key, value) => persistent.set(key, String(value)), removeItem: key => persistent.delete(key) }, configurable: true, writable: true });
   globalThis.window = { location: { origin: 'http://127.0.0.1:8000', search: '', href: 'http://127.0.0.1:8000/', assign: value => { window.assigned = value; } }, history: { replaceState: (_a, _b, url) => { window.cleaned = url; window.location.search = ''; } } };
   const client = await import(`data:text/javascript;base64,${Buffer.from(outputFiles[0].text + `\n//${counter++}`).toString('base64')}`);
   return { client, storage, persistent };
@@ -34,7 +34,7 @@ test('rejects bad OAuth state before sending code and removes callback data', as
   await assert.rejects(client.finishSpotifyConnection(), /could not be verified/); assert.equal(window.cleaned, '/');
 });
 test('deduplicates callback exchange and stores session only after successful exchange', async () => {
-  const { client, storage } = await setup(); await client.connectSpotify();
+  const { client, storage, persistent } = await setup(); await client.connectSpotify();
   const pending = JSON.parse(storage.get('sistrum.spotify.pending.v1'));
   window.location.search = `?code=private-code&state=${pending.state}`; window.location.href += window.location.search;
   let exchanges = 0;
@@ -45,6 +45,9 @@ test('deduplicates callback exchange and stores session only after successful ex
   };
   assert.deepEqual(await Promise.all([client.finishSpotifyConnection(), client.finishSpotifyConnection()]), [true, true]);
   assert.equal(exchanges, 1); assert.equal(client.isSpotifyConnected(), true);
+  assert.equal(storage.has('sistrum.spotify.session.v1'), false);
+  assert.equal(JSON.parse(persistent.get('sistrum.spotify.session.v1')).access_token, 'token');
+  assert.equal(client.getSavedSpotifyAccount().account_id, 'stable-account');
 });
 test('concurrent expired requests share refresh and preserve omitted refresh token', async () => {
   const { client, storage, persistent } = await setup(); session(storage, { expires_at: 1 }); let refreshes = 0;

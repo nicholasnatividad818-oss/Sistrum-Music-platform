@@ -7,7 +7,9 @@
     "dev": "vite --port=3000 --host=0.0.0.0",
     "build": "vite build",
     "preview": "vite preview",
-    "clean": "rm -rf dist server.js",
+    "clean": "node --input-type=module -e \"import { rmSync } from 'node:fs'; rmSync('dist', { recursive: true, force: true });\"",
+    "test": "node --test tests/*.test.mjs",
+    "check": "npm run lint && npm test && npm run build",
     "lint": "tsc --noEmit",
     "dev:spotify": "vite --port=8000 --strictPort --host=127.0.0.1",
     "test:spotify": "node --test tests/spotify.test.mjs"
