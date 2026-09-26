@@ -5,25 +5,24 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabasePublishableKey =
   import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-if (!supabaseUrl) {
-  throw new Error('Missing VITE_SUPABASE_URL');
-}
-
-if (supabasePublishableKey?.startsWith('sb_secret_')) throw new Error('A secret key must never be used in the browser.');
-
-if (!supabasePublishableKey) {
-  throw new Error('Missing VITE_SUPABASE_PUBLISHABLE_KEY');
-}
-
-export const supabase = createClient<Database>(
-  supabaseUrl,
-  supabasePublishableKey,
-  {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-      // Spotify also uses a code query parameter; do not consume its callback.
-      detectSessionInUrl: typeof window !== 'undefined' && !new URLSearchParams(window.location.search).has('state'),
-    },
-  }
+export const isSupabaseConfigured = Boolean(
+  supabaseUrl && supabasePublishableKey && !supabasePublishableKey.startsWith('sb_secret_')
 );
+
+if (supabasePublishableKey?.startsWith('sb_secret_')) {
+  throw new Error('A secret key must never be used in the browser.');
+}
+
+const url = isSupabaseConfigured ? supabaseUrl : 'https://unconfigured.supabase.local';
+const key = isSupabaseConfigured ? supabasePublishableKey : 'public-unconfigured';
+
+export const supabase = createClient<Database>(url, key, {
+  auth: {
+    persistSession: isSupabaseConfigured,
+    autoRefreshToken: isSupabaseConfigured,
+    detectSessionInUrl:
+      isSupabaseConfigured &&
+      typeof window !== 'undefined' &&
+      !new URLSearchParams(window.location.search).has('state'),
+  },
+});
