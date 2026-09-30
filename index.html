@@ -3,8 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Sistrum</title>
-    <meta name="description" content="Sistrum is the NRN music system app: licensed radio, catalog, vault, and a global player." />
+    <title>Sistrum — Licensed Music Store, Radio, Vault &amp; Catalog</title>
+    <meta name="description" content="Sistrum is the NRN music store: license tracks, stream radio, browse the catalog, escrow in the vault, and play everything in one global player." />
+    <meta name="keywords" content="Sistrum, NRN, music licensing, music store, licensed radio, catalog, vault escrow, creator music, micro licensing" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <meta name="author" content="NRN / SEYDANIC" />
     <meta name="theme-color" content="#0b0b0f" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="Sistrum" />
@@ -12,17 +15,67 @@
     <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
     <link rel="apple-touch-icon" href="/icons/icon.svg" />
     <link rel="canonical" href="https://sistrum-music-platform.vercel.app/" />
-    <meta property="og:title" content="Sistrum" />
-    <meta property="og:description" content="NRN music system app. One music layer for every NRN experience." />
+    <link rel="sitemap" type="application/xml" href="https://sistrum-music-platform.vercel.app/sitemap.xml" />
+    <meta property="og:site_name" content="Sistrum" />
+    <meta property="og:title" content="Sistrum — Licensed Music Store" />
+    <meta property="og:description" content="License tracks, stream radio, browse catalog, and vault masters. One music layer for every NRN experience." />
     <meta property="og:type" content="website" />
+    <meta property="og:locale" content="en_US" />
     <meta property="og:url" content="https://sistrum-music-platform.vercel.app/" />
     <meta property="og:image" content="https://sistrum-music-platform.vercel.app/icons/icon.svg" />
     <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="Sistrum" />
-    <meta name="twitter:description" content="NRN music system app." />
+    <meta name="twitter:title" content="Sistrum — Licensed Music Store" />
+    <meta name="twitter:description" content="NRN music store: catalog, licenses, radio, vault, global player." />
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebSite",
+          "name": "Sistrum",
+          "url": "https://sistrum-music-platform.vercel.app/",
+          "description": "Licensed music store, radio, catalog, and vault for NRN creators.",
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": "https://sistrum-music-platform.vercel.app/?q={search_term_string}",
+            "query-input": "required name=search_term_string"
+          }
+        },
+        {
+          "@type": "Organization",
+          "name": "Sistrum",
+          "url": "https://sistrum-music-platform.vercel.app/",
+          "brand": "NRN"
+        },
+        {
+          "@type": "SoftwareApplication",
+          "name": "Sistrum",
+          "applicationCategory": "MultimediaApplication",
+          "operatingSystem": "Web",
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+          }
+        }
+      ]
+    }
+    </script>
   </head>
   <body>
     <div id="root"></div>
+    <noscript>
+      <main>
+        <h1>Sistrum — Licensed Music Store</h1>
+        <p>Sistrum is the NRN music system: licensed radio, catalog, vault escrow, uploads, and a global player.</p>
+        <p>Enable JavaScript to use the store. Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY on Vercel so the live catalog loads.</p>
+        <nav>
+          <a href="/">Discover</a>
+          <a href="/privacy.html">Privacy</a>
+          <a href="/terms.html">Terms</a>
+        </nav>
+      </main>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
