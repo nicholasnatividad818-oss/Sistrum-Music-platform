@@ -200,8 +200,6 @@ export function Navbar({
           )}
         </div>
 
-        {/* Signal remains accessible on mobile. */}
-        <button onClick={() => onSelectTab('signal')} aria-current={activeTab === 'signal' ? 'page' : undefined} className={`rounded-xl px-3 py-2 text-xs font-bold ${activeTab === 'signal' ? 'bg-violet-600 text-white' : 'text-violet-300 hover:bg-neutral-800'}`}>Signal</button>
         {/* Right: Upload Button & Profile */}
         <div className="flex items-center gap-3">
           {/* Upload Button */}
@@ -271,6 +269,9 @@ export function Navbar({
           )}
         </div>
       </div>
+      <nav aria-label="Community tools" className="mx-auto flex max-w-7xl gap-2 overflow-x-auto px-4 pb-3">
+        {(['signal', 'proposals', 'community'] as const).map(tab => <button key={tab} onClick={() => onSelectTab(tab)} aria-current={activeTab === tab ? 'page' : undefined} className={`shrink-0 rounded-xl px-4 py-2 text-xs font-bold capitalize ${activeTab === tab ? 'bg-violet-600 text-white' : 'bg-neutral-900 text-violet-300 hover:bg-neutral-800'}`}>{tab}</button>)}
+      </nav>
     </header>
   );
 }
