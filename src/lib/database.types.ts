@@ -1,3 +1,4 @@
+import type { SignalCampaign, SignalJob } from '../services/signal.types';
 export type Json =
   | string
   | number
@@ -14,6 +15,8 @@ export type Database = {
   }
   public: {
     Tables: {
+      signal_campaigns: { Row: SignalCampaign; Insert: Partial<SignalCampaign>; Update: Partial<SignalCampaign>; Relationships: [] };
+      signal_jobs: { Row: SignalJob; Insert: Partial<SignalJob>; Update: Partial<SignalJob>; Relationships: [] };
       comments: {
         Row: {
           body: string

@@ -200,6 +200,8 @@ export function Navbar({
           )}
         </div>
 
+        {/* Signal remains accessible on mobile. */}
+        <button onClick={() => onSelectTab('signal')} aria-current={activeTab === 'signal' ? 'page' : undefined} className={`rounded-xl px-3 py-2 text-xs font-bold ${activeTab === 'signal' ? 'bg-violet-600 text-white' : 'text-violet-300 hover:bg-neutral-800'}`}>Signal</button>
         {/* Right: Upload Button & Profile */}
         <div className="flex items-center gap-3">
           {/* Upload Button */}

@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import type { User } from '@supabase/supabase-js';
+import { SignalView } from './components/SignalView';
 import { SpotifyView } from './components/SpotifyView';
 import { hasSpotifyCallback } from './services/spotify';
 import { Track, Artist, Playlist, Comment, ActiveTab, EqualizerSettings, LegalDocument, UserProfile } from './types';
@@ -455,6 +456,7 @@ export default function App() {
       {/* Main Content Body */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 pt-6">
         {activeTab === 'spotify' && <SpotifyView />}
+        {activeTab === 'signal' && <SignalView key={user?.id || 'guest'} user={user} tracks={tracks} onSignIn={() => setIsAuthOpen(true)} />}
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#ff5500]/30 bg-[#ff5500]/10 px-4 py-3 text-xs">
           <span className="font-bold text-orange-100">Sistrum is in private beta. Keep your own backup of every master.</span>
           {!user && <button onClick={() => setIsAuthOpen(true)} className="font-black text-[#ff7a3d] hover:text-white">Join the beta</button>}
