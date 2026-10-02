@@ -202,6 +202,7 @@ export function Navbar({
 
         {/* Right: Upload Button & Profile */}
         <div className="flex items-center gap-3">
+          <button onClick={() => onSelectTab('distribution')} className="rounded-xl border border-neutral-700 px-3 py-2 text-xs font-bold">Distribute</button>
           {/* Upload Button */}
           <button
             id="nav-upload-btn"

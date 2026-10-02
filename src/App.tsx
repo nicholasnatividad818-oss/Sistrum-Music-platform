@@ -1,3 +1,4 @@
+import { DistributionView } from './components/DistributionView';
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -455,6 +456,7 @@ export default function App() {
       {/* Main Content Body */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 pt-6">
         {activeTab === 'spotify' && <SpotifyView />}
+        {activeTab === 'distribution' && <DistributionView />}
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#ff5500]/30 bg-[#ff5500]/10 px-4 py-3 text-xs">
           <span className="font-bold text-orange-100">Sistrum is in private beta. Keep your own backup of every master.</span>
           {!user && <button onClick={() => setIsAuthOpen(true)} className="font-black text-[#ff7a3d] hover:text-white">Join the beta</button>}

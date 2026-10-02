@@ -1,0 +1,566 @@
+[
+  {
+    "method": "GET",
+    "path": "/artists",
+    "title": "Get all artists",
+    "group": "Artists"
+  },
+  {
+    "method": "POST",
+    "path": "/artists",
+    "title": "Create new artist",
+    "group": "Artists"
+  },
+  {
+    "method": "GET",
+    "path": "/artists/{artist}",
+    "title": "Get artist details",
+    "group": "Artists"
+  },
+  {
+    "method": "PATCH",
+    "path": "/artists/{artist}",
+    "title": "Update artist",
+    "group": "Artists"
+  },
+  {
+    "method": "GET",
+    "path": "/writers",
+    "title": "Get all writers",
+    "group": "Writers"
+  },
+  {
+    "method": "POST",
+    "path": "/writers",
+    "title": "Create new writer",
+    "group": "Writers"
+  },
+  {
+    "method": "GET",
+    "path": "/writers/{writer}",
+    "title": "Get writer details",
+    "group": "Writers"
+  },
+  {
+    "method": "PATCH",
+    "path": "/writers/{writer}",
+    "title": "Update writer",
+    "group": "Writers"
+  },
+  {
+    "method": "GET",
+    "path": "/labels",
+    "title": "Get all labels",
+    "group": "Labels"
+  },
+  {
+    "method": "POST",
+    "path": "/labels",
+    "title": "Create new label",
+    "group": "Labels"
+  },
+  {
+    "method": "GET",
+    "path": "/labels/{label}",
+    "title": "Get label details",
+    "group": "Labels"
+  },
+  {
+    "method": "PATCH",
+    "path": "/labels/{label}",
+    "title": "Update label",
+    "group": "Labels"
+  },
+  {
+    "method": "POST",
+    "path": "/labels/{label}/enable-beatport",
+    "title": "Request Beatport onboarding",
+    "group": "Labels"
+  },
+  {
+    "method": "GET",
+    "path": "/publishers",
+    "title": "Get all publishers",
+    "group": "Publishers"
+  },
+  {
+    "method": "POST",
+    "path": "/publishers",
+    "title": "Create new publisher",
+    "group": "Publishers"
+  },
+  {
+    "method": "GET",
+    "path": "/publishers/{publisher}",
+    "title": "Get publisher details",
+    "group": "Publishers"
+  },
+  {
+    "method": "PATCH",
+    "path": "/publishers/{publisher}",
+    "title": "Update publisher",
+    "group": "Publishers"
+  },
+  {
+    "method": "GET",
+    "path": "/releases",
+    "title": "Get all releases",
+    "group": "Releases"
+  },
+  {
+    "method": "POST",
+    "path": "/releases",
+    "title": "Create new release",
+    "group": "Releases"
+  },
+  {
+    "method": "POST",
+    "path": "/releases/short-url",
+    "title": "Generate the landing-page short URL",
+    "group": "Releases"
+  },
+  {
+    "method": "GET",
+    "path": "/releases/{release}",
+    "title": "Get release details",
+    "group": "Releases"
+  },
+  {
+    "method": "PATCH",
+    "path": "/releases/{release}",
+    "title": "Update release",
+    "group": "Releases"
+  },
+  {
+    "method": "POST",
+    "path": "/releases/{release}/validate",
+    "title": "Validate release",
+    "group": "Releases"
+  },
+  {
+    "method": "POST",
+    "path": "/releases/{release}/distribute",
+    "title": "Distribute release",
+    "group": "Releases"
+  },
+  {
+    "method": "GET",
+    "path": "/releases/{release}/quality-report",
+    "title": "Get the Preflight QC report for a release",
+    "group": "Releases"
+  },
+  {
+    "method": "GET",
+    "path": "/releases/{releaseId}/delivery-status",
+    "title": "Get a release's delivery status",
+    "group": "Releases"
+  },
+  {
+    "method": "POST",
+    "path": "/releases/{release}/quality-report/refresh",
+    "title": "Re-run the Preflight QC analysis for a held release",
+    "group": "Releases"
+  },
+  {
+    "method": "GET",
+    "path": "/releases/{release}/landing-config",
+    "title": "Get landing-page config",
+    "group": "Releases"
+  },
+  {
+    "method": "PUT",
+    "path": "/releases/{release}/landing-config",
+    "title": "Set landing-page config",
+    "group": "Releases"
+  },
+  {
+    "method": "GET",
+    "path": "/review-issues",
+    "title": "Get review issues for a release",
+    "group": "Releases"
+  },
+  {
+    "method": "POST",
+    "path": "/review-issues/{reviewReleaseIssue}/notes",
+    "title": "Submit a note on a review issue",
+    "group": "Releases"
+  },
+  {
+    "method": "GET",
+    "path": "/issue-definitions",
+    "title": "Get the issue-definitions catalog",
+    "group": "Releases"
+  },
+  {
+    "method": "POST",
+    "path": "/tracks/{track}/files/{fileType}/upload-url",
+    "title": "Get presigned upload URL",
+    "group": "Track Files"
+  },
+  {
+    "method": "GET",
+    "path": "/tracks/{track}/files/{fileType}",
+    "title": "Get file details",
+    "group": "Track Files"
+  },
+  {
+    "method": "PUT",
+    "path": "/tracks/{track}/files/{fileType}",
+    "title": "Upload new file",
+    "group": "Track Files"
+  },
+  {
+    "method": "GET",
+    "path": "/tracks/{track}/file-upload-attempts/{uploadAttempt}",
+    "title": "Get audio upload status",
+    "group": "Track Files"
+  },
+  {
+    "method": "GET",
+    "path": "/tracks/{track}/licenses",
+    "title": "List all track licenses",
+    "group": "Track Licenses"
+  },
+  {
+    "method": "POST",
+    "path": "/tracks/{track}/licenses",
+    "title": "Upload track license",
+    "group": "Track Licenses"
+  },
+  {
+    "method": "GET",
+    "path": "/tracks/{track}/licenses/{trackLicense}",
+    "title": "Get license details",
+    "group": "Track Licenses"
+  },
+  {
+    "method": "POST",
+    "path": "/tracks/{track}/licenses/{trackLicense}",
+    "title": "Update license",
+    "group": "Track Licenses"
+  },
+  {
+    "method": "GET",
+    "path": "/tracks",
+    "title": "Get all tracks",
+    "group": "Tracks"
+  },
+  {
+    "method": "POST",
+    "path": "/tracks",
+    "title": "Create new track",
+    "group": "Tracks"
+  },
+  {
+    "method": "GET",
+    "path": "/tracks/{track}",
+    "title": "Get track details",
+    "group": "Tracks"
+  },
+  {
+    "method": "PATCH",
+    "path": "/tracks/{track}",
+    "title": "Update track",
+    "group": "Tracks"
+  },
+  {
+    "method": "POST",
+    "path": "/releases/{release}/files/{assetType}/upload-url",
+    "title": "Get presigned upload URL",
+    "group": "Animated Covers"
+  },
+  {
+    "method": "GET",
+    "path": "/releases/{release}/files/{assetType}",
+    "title": "Get file details",
+    "group": "Animated Covers"
+  },
+  {
+    "method": "PUT",
+    "path": "/releases/{release}/files/{assetType}",
+    "title": "Upload new file",
+    "group": "Animated Covers"
+  },
+  {
+    "method": "GET",
+    "path": "/distro-outlets",
+    "title": "Get all distro outlets",
+    "group": "Distro Outlets"
+  },
+  {
+    "method": "GET",
+    "path": "/queues/distro",
+    "title": "Get all queue jobs",
+    "group": "Distro Queue"
+  },
+  {
+    "method": "GET",
+    "path": "/site-settings/{label}",
+    "title": "Get site settings",
+    "group": "Site Settings"
+  },
+  {
+    "method": "GET",
+    "path": "/site-settings/links/{label}",
+    "title": "Get label links",
+    "group": "Site Settings"
+  },
+  {
+    "method": "GET",
+    "path": "/resolve/label/{labelSlug}",
+    "title": "Resolve label by slug",
+    "group": "Site Settings"
+  },
+  {
+    "method": "GET",
+    "path": "/me",
+    "title": "Get current user",
+    "group": "User Info"
+  },
+  {
+    "method": "GET",
+    "path": "/webhooks",
+    "title": "List all webhooks",
+    "group": "Webhooks"
+  },
+  {
+    "method": "POST",
+    "path": "/webhooks",
+    "title": "Create a new webhook",
+    "group": "Webhooks"
+  },
+  {
+    "method": "GET",
+    "path": "/webhooks/event-types",
+    "title": "Get available event types",
+    "group": "Webhooks"
+  },
+  {
+    "method": "GET",
+    "path": "/webhooks/{webhook}",
+    "title": "Get webhook details",
+    "group": "Webhooks"
+  },
+  {
+    "method": "PATCH",
+    "path": "/webhooks/{webhook}",
+    "title": "Update a webhook",
+    "group": "Webhooks"
+  },
+  {
+    "method": "POST",
+    "path": "/webhooks/{webhook}/test",
+    "title": "Test a webhook",
+    "group": "Webhooks"
+  },
+  {
+    "method": "GET",
+    "path": "/webhooks/{webhook}/logs",
+    "title": "Get webhook delivery logs",
+    "group": "Webhooks"
+  },
+  {
+    "method": "GET",
+    "path": "/genres",
+    "title": "Get all genres",
+    "group": "Genres"
+  },
+  {
+    "method": "GET",
+    "path": "/contributor-roles",
+    "title": "Get contributor roles",
+    "group": "Contributor Roles"
+  },
+  {
+    "method": "GET",
+    "path": "/genre-categories",
+    "title": "Get all genre categories",
+    "group": "Genre Categories"
+  },
+  {
+    "method": "GET",
+    "path": "/statements",
+    "title": "Get all statements",
+    "group": "Statements"
+  },
+  {
+    "method": "GET",
+    "path": "/statements/{invoiceNumber}",
+    "title": "Get statement details",
+    "group": "Statements"
+  },
+  {
+    "method": "GET",
+    "path": "/transactions",
+    "title": "Get all transactions",
+    "group": "Transactions"
+  },
+  {
+    "method": "GET",
+    "path": "/artificial-streaming-fee/{period}",
+    "title": "Get artificial-streaming fee breakdown",
+    "group": "Transactions"
+  },
+  {
+    "method": "GET",
+    "path": "/royalties/breakdown",
+    "title": "Get a per-dimension royalty breakdown",
+    "group": "Royalties"
+  },
+  {
+    "method": "GET",
+    "path": "/royalties/artificial-streams",
+    "title": "List artificial-stream detections",
+    "group": "Royalties"
+  },
+  {
+    "method": "GET",
+    "path": "/instruments",
+    "title": "Get all instruments",
+    "group": "Instruments"
+  },
+  {
+    "method": "GET",
+    "path": "/analytics/summary",
+    "title": "Composite analytics summary",
+    "group": "Analytics"
+  },
+  {
+    "method": "GET",
+    "path": "/analytics/leaderboards",
+    "title": "Top artists, tracks or albums by streams",
+    "group": "Analytics"
+  },
+  {
+    "method": "GET",
+    "path": "/analytics/placements",
+    "title": "Top playlist and radio placements by streams",
+    "group": "Analytics"
+  },
+  {
+    "method": "GET",
+    "path": "/analytics/availability",
+    "title": "Analytics section and platform availability",
+    "group": "Analytics"
+  },
+  {
+    "method": "GET",
+    "path": "/analytics/streams",
+    "title": "Daily streams time-series grouped by date and platform",
+    "group": "Analytics"
+  },
+  {
+    "method": "GET",
+    "path": "/analytics/listeners",
+    "title": "Daily listeners time-series grouped by date and platform",
+    "group": "Analytics"
+  },
+  {
+    "method": "GET",
+    "path": "/analytics/saves",
+    "title": "Daily saves time-series grouped by date and platform",
+    "group": "Analytics"
+  },
+  {
+    "method": "GET",
+    "path": "/analytics/skips",
+    "title": "Daily skips time-series grouped by date and platform",
+    "group": "Analytics"
+  },
+  {
+    "method": "GET",
+    "path": "/analytics/streams-by-country",
+    "title": "Total streams aggregated by country",
+    "group": "Analytics"
+  },
+  {
+    "method": "GET",
+    "path": "/analytics/streams-by-gender",
+    "title": "Total streams aggregated by gender",
+    "group": "Analytics"
+  },
+  {
+    "method": "GET",
+    "path": "/analytics/streams-by-age",
+    "title": "Total streams aggregated by age group",
+    "group": "Analytics"
+  },
+  {
+    "method": "GET",
+    "path": "/analytics/shares",
+    "title": "Daily shares time-series grouped by date and platform",
+    "group": "Analytics"
+  },
+  {
+    "method": "GET",
+    "path": "/analytics/completion-rate",
+    "title": "Daily stream-weighted completion rate grouped by date and platform",
+    "group": "Analytics"
+  },
+  {
+    "method": "GET",
+    "path": "/analytics/lyrics-view-rate",
+    "title": "Daily stream-weighted lyrics view rate grouped by date and platform",
+    "group": "Analytics"
+  },
+  {
+    "method": "GET",
+    "path": "/analytics/canvas-view-rate",
+    "title": "Daily stream-weighted canvas view rate grouped by date and platform",
+    "group": "Analytics"
+  },
+  {
+    "method": "GET",
+    "path": "/analytics/device-split",
+    "title": "Daily stream-weighted mobile-device share grouped by date and platform",
+    "group": "Analytics"
+  },
+  {
+    "method": "GET",
+    "path": "/analytics/source-split",
+    "title": "Daily stream-weighted organic-source share grouped by date and platform",
+    "group": "Analytics"
+  },
+  {
+    "method": "GET",
+    "path": "/analytics/saves-by-tier",
+    "title": "Premium vs free saves split grouped by date and platform",
+    "group": "Analytics"
+  },
+  {
+    "method": "GET",
+    "path": "/analytics/shares-by-country",
+    "title": "Total shares aggregated by country",
+    "group": "Analytics"
+  },
+  {
+    "method": "GET",
+    "path": "/languages",
+    "title": "Get all languages",
+    "group": "Languages"
+  },
+  {
+    "method": "GET",
+    "path": "/rate-limit",
+    "title": "Get the current token's rate budget",
+    "group": "Rate Limit"
+  },
+  {
+    "method": "GET",
+    "path": "/stream-radar/flags",
+    "title": "List Stream Radar flags",
+    "group": "Stream Radar"
+  },
+  {
+    "method": "GET",
+    "path": "/stream-radar/flags/{streamRadarFlag}",
+    "title": "Get a Stream Radar flag",
+    "group": "Stream Radar"
+  },
+  {
+    "method": "GET",
+    "path": "/territories",
+    "title": "Get all territories",
+    "group": "Territories"
+  }
+]
