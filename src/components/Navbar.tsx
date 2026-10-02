@@ -24,6 +24,11 @@ interface NavbarProps {
   onOpenTrackDetail: (track: Track) => void;
   searchResults: { tracks: Track[]; artists: Artist[] };
   isPlaying?: boolean;
+  user: { name: string; email: string } | null;
+  plan: 'free' | 'pro' | null;
+  onSignIn: () => void;
+  onSignOut: () => void;
+  onUpgrade: () => void;
 }
 
 export function Navbar({
@@ -35,10 +40,16 @@ export function Navbar({
   onOpenArtistProfile,
   onOpenTrackDetail,
   searchResults,
-  isPlaying = false
+  isPlaying = false,
+  user,
+  plan,
+  onSignIn,
+  onSignOut,
+  onUpgrade,
 }: NavbarProps) {
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showAccount, setShowAccount] = useState(false);
 
   const hasSearchContent = searchQuery.trim().length > 0;
 
@@ -229,18 +240,71 @@ export function Navbar({
             )}
           </div>
 
-          {/* User Avatar */}
-          <div
-            onClick={() => onSelectTab('library')}
-            className="flex items-center gap-2 cursor-pointer p-1 rounded-full hover:ring-2 hover:ring-[#ff5500]/50 transition-all"
-            title="Your Library & Profile"
-          >
-            <img
-              src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80"
-              alt="Profile"
-              className="w-8 h-8 rounded-full object-cover border border-neutral-700"
-            />
-          </div>
+          {user ? (
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowAccount((open) => !open)}
+                className="flex items-center gap-2 p-1 rounded-full hover:ring-2 hover:ring-[#ff5500]/50 transition-all"
+                title={user.email}
+              >
+                <span className="w-8 h-8 rounded-full bg-[#ff5500] text-white text-xs font-black flex items-center justify-center">
+                  {(user.name || user.email).slice(0, 1).toUpperCase()}
+                </span>
+              </button>
+              {showAccount && (
+                <div className="absolute top-full right-0 mt-2 w-64 bg-neutral-900 border border-neutral-800 rounded-2xl shadow-2xl p-3 z-50 space-y-2">
+                  <div>
+                    <p className="text-xs font-bold text-white truncate">{user.name}</p>
+                    <p className="text-[10px] text-neutral-400 truncate">{user.email}</p>
+                    <p className="text-[10px] uppercase tracking-wider text-[#ff5500] mt-1">
+                      {plan === 'pro' ? 'Sistrum Pro' : 'Free plan'}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowAccount(false);
+                      onSelectTab('library');
+                    }}
+                    className="w-full text-left text-xs text-neutral-200 hover:text-white px-2 py-1.5 rounded-lg hover:bg-neutral-800"
+                  >
+                    Library
+                  </button>
+                  {plan !== 'pro' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowAccount(false);
+                        onUpgrade();
+                      }}
+                      className="w-full text-left text-xs font-bold text-white bg-[#ff5500] px-2 py-1.5 rounded-lg"
+                    >
+                      Upgrade to Pro — $15/mo
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowAccount(false);
+                      onSignOut();
+                    }}
+                    className="w-full text-left text-xs text-neutral-400 hover:text-white px-2 py-1.5 rounded-lg hover:bg-neutral-800"
+                  >
+                    Sign out
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={onSignIn}
+              className="px-3 py-2 rounded-xl border border-neutral-700 text-xs font-bold text-white hover:border-[#ff5500]"
+            >
+              Sign in
+            </button>
+          )}
         </div>
       </div>
     </header>

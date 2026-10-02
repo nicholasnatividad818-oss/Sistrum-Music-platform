@@ -4,9 +4,14 @@
  */
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import type { User } from '@supabase/supabase-js';
 import { Track, Artist, Playlist, Comment, ActiveTab, EqualizerSettings } from './types';
-import { MOCK_TRACKS, MOCK_ARTISTS, MOCK_PLAYLISTS, MOCK_COMMENTS, CURRENT_USER } from './data/mockData';
+import { MOCK_ARTISTS, MOCK_PLAYLISTS, MOCK_COMMENTS, CURRENT_USER } from './data/mockData';
 import { audioEngine } from './services/audioEngine';
+import { isSupabaseConfigured, supabase } from './lib/supabase';
+import { signOut } from './services/auth';
+import { listTracks, recordPlay } from './services/tracks';
+import { fetchBillingStatus, startProCheckout, type BillingStatus } from './services/billing';
 import { Navbar } from './components/Navbar';
 import { DiscoverView } from './components/DiscoverView';
 import { StreamView } from './components/StreamView';
@@ -20,13 +25,25 @@ import { UploadModal } from './components/UploadModal';
 import { QueueDrawer } from './components/QueueDrawer';
 import { ShareModal } from './components/ShareModal';
 import { PlaylistModal } from './components/PlaylistModal';
+import { SistrumAssistant } from './components/SistrumAssistant';
+import { AuthModal } from './components/AuthModal';
+
+function accountName(user: User | null): string {
+  if (!user) return CURRENT_USER.name;
+  const meta = user.user_metadata?.display_name;
+  if (typeof meta === 'string' && meta.trim()) return meta.trim();
+  return user.email?.split('@')[0] || 'Artist';
+}
 
 export default function App() {
   // --- Data State ---
-  const [tracks, setTracks] = useState<Track[]>(() => {
-    const saved = localStorage.getItem('soundwave_tracks');
-    return saved ? JSON.parse(saved) : MOCK_TRACKS;
-  });
+  const [tracks, setTracks] = useState<Track[]>([]);
+  const [tracksError, setTracksError] = useState<string | null>(null);
+  const [tracksLoading, setTracksLoading] = useState(isSupabaseConfigured);
+  const [authUser, setAuthUser] = useState<User | null>(null);
+  const [authOpen, setAuthOpen] = useState(false);
+  const [billing, setBilling] = useState<BillingStatus | null>(null);
+  const [billingNote, setBillingNote] = useState<string | null>(null);
 
   const [artists, setArtists] = useState<Artist[]>(MOCK_ARTISTS);
   const [playlists, setPlaylists] = useState<Playlist[]>(() => {
@@ -79,10 +96,59 @@ export default function App() {
   const [shareModalTrack, setShareModalTrack] = useState<Track | null>(null);
   const [playlistModalTrack, setPlaylistModalTrack] = useState<Track | null>(null);
 
-  // Sync to LocalStorage
   useEffect(() => {
-    localStorage.setItem('soundwave_tracks', JSON.stringify(tracks));
-  }, [tracks]);
+    if (!supabase) return;
+    supabase.auth.getSession().then(({ data }) => setAuthUser(data.session?.user ?? null));
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+      setAuthUser(session?.user ?? null);
+    });
+    return () => data.subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured) {
+      setTracksError('Add a real VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY, then run the SQL files in supabase/.');
+      return;
+    }
+    let cancel = false;
+    setTracksLoading(true);
+    listTracks()
+      .then((rows) => {
+        if (cancel) return;
+        setTracks(rows);
+        setTracksError(null);
+        setCurrentTrack((current) => (current && rows.some((track) => track.id === current.id) ? current : rows[0] || null));
+        setQueue((current) => (current.length > 0 ? current : rows.slice(1)));
+      })
+      .catch((err: unknown) => {
+        if (cancel) return;
+        const message = err instanceof Error ? err.message : 'Could not load tracks';
+        setTracksError(
+          /failed to fetch|network|load failed|enotfound|timeout|could not reach/i.test(message)
+            ? 'Could not reach Supabase. Use the project URL from the Supabase dashboard, then run the SQL files in supabase/.'
+            : message,
+        );
+      })
+      .finally(() => {
+        if (!cancel) setTracksLoading(false);
+      });
+    return () => {
+      cancel = true;
+    };
+  }, [authUser?.id]);
+
+  useEffect(() => {
+    if (!authUser) {
+      setBilling(null);
+      return;
+    }
+    fetchBillingStatus()
+      .then(setBilling)
+      .catch((err: unknown) => {
+        setBilling(null);
+        setBillingNote(err instanceof Error ? err.message : null);
+      });
+  }, [authUser?.id]);
 
   useEffect(() => {
     localStorage.setItem('soundwave_playlists', JSON.stringify(playlists));
@@ -122,6 +188,7 @@ export default function App() {
     setTracks((prev) =>
       prev.map((t) => (t.id === track.id ? { ...t, playCount: t.playCount + 1 } : t))
     );
+    void recordPlay(track.id);
 
     // Update history
     setHistory((prev) => [track, ...prev.filter((t) => t.id !== track.id)].slice(0, 20));
@@ -268,8 +335,8 @@ export default function App() {
     const newComment: Comment = {
       id: `c-${Date.now()}`,
       trackId,
-      userId: CURRENT_USER.id,
-      userName: CURRENT_USER.name,
+      userId: authUser?.id || CURRENT_USER.id,
+      userName: accountName(authUser),
       userAvatar: CURRENT_USER.avatar,
       text,
       timestamp,
@@ -302,7 +369,7 @@ export default function App() {
       title,
       description,
       coverArt: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=600&auto=format&fit=crop&q=80',
-      creator: CURRENT_USER.name,
+      creator: accountName(authUser),
       creatorAvatar: CURRENT_USER.avatar,
       trackIds: playlistModalTrack ? [playlistModalTrack.id] : [],
       isPublic: true,
@@ -360,7 +427,44 @@ export default function App() {
   }, [tracks, artists, searchQuery]);
 
   // Selected Artist for profile view
-  const activeArtist = artists.find((a) => a.id === selectedArtistId) || artists[0];
+  const openAuth = () => setAuthOpen(true);
+  const openUpload = () => {
+    if (!authUser) {
+      setAuthOpen(true);
+      return;
+    }
+    setIsUploadOpen(true);
+  };
+  const handleUpgrade = async () => {
+    if (!authUser) {
+      setAuthOpen(true);
+      return;
+    }
+    try {
+      const url = await startProCheckout();
+      window.location.assign(url);
+    } catch (err) {
+      setBillingNote(err instanceof Error ? err.message : 'Could not start checkout');
+    }
+  };
+
+  const activeArtist =
+    artists.find((a) => a.id === selectedArtistId) ||
+    (selectedArtistId
+      ? {
+          id: selectedArtistId,
+          name: tracks.find((track) => track.artistId === selectedArtistId)?.artist || 'Artist',
+          handle: 'artist',
+          avatar: tracks.find((track) => track.artistId === selectedArtistId)?.artistAvatar || CURRENT_USER.avatar,
+          banner: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=1600&auto=format&fit=crop&q=80',
+          bio: 'Sistrum artist',
+          location: '',
+          followersCount: 0,
+          followingCount: 0,
+          tracksCount: tracks.filter((track) => track.artistId === selectedArtistId).length,
+          isVerified: billing?.plan === 'pro' && selectedArtistId === authUser?.id,
+        }
+      : artists[0]);
   const activeArtistTracks = tracks.filter((t) => t.artistId === activeArtist?.id);
 
   // Active track comments
@@ -381,15 +485,31 @@ export default function App() {
         }}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
-        onOpenUpload={() => setIsUploadOpen(true)}
+        onOpenUpload={openUpload}
         onOpenArtistProfile={handleOpenArtistProfile}
         onOpenTrackDetail={handleOpenTrackDetail}
         searchResults={searchResults}
         isPlaying={isPlaying}
+        user={authUser ? { name: accountName(authUser), email: authUser.email || '' } : null}
+        plan={billing?.plan || (authUser ? 'free' : null)}
+        onSignIn={openAuth}
+        onSignOut={() => {
+          void signOut();
+        }}
+        onUpgrade={() => {
+          void handleUpgrade();
+        }}
       />
 
       {/* Main Content Body */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 pt-6">
+        {(tracksLoading || tracksError || billingNote || !isSupabaseConfigured) && (
+          <div className="mb-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs text-amber-100">
+            {tracksLoading && !tracksError
+              ? 'Loading catalog…'
+              : tracksError || billingNote || 'Add a real VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY, then run the SQL files in supabase/.'}
+          </div>
+        )}
         {activeTab === 'discover' && (
           <DiscoverView
             tracks={tracks}
@@ -407,7 +527,7 @@ export default function App() {
             onOpenArtistProfile={handleOpenArtistProfile}
             onOpenPlaylistModal={(t) => setPlaylistModalTrack(t)}
             onOpenShareModal={(t) => setShareModalTrack(t)}
-            onOpenUploadModal={() => setIsUploadOpen(true)}
+            onOpenUploadModal={openUpload}
           />
         )}
 
@@ -428,7 +548,7 @@ export default function App() {
             onOpenArtistProfile={handleOpenArtistProfile}
             onOpenPlaylistModal={(t) => setPlaylistModalTrack(t)}
             onOpenShareModal={(t) => setShareModalTrack(t)}
-            onOpenUploadModal={() => setIsUploadOpen(true)}
+            onOpenUploadModal={openUpload}
           />
         )}
 
@@ -436,7 +556,7 @@ export default function App() {
           <LibraryView
             likedTracks={tracks.filter((t) => t.isLiked)}
             repostedTracks={tracks.filter((t) => t.isReposted)}
-            uploadedTracks={tracks.filter((t) => t.artistId === 'current-user')}
+            uploadedTracks={tracks.filter((t) => authUser && t.artistId === authUser.id)}
             historyTracks={history}
             playlists={playlists}
             currentTrackId={currentTrack?.id}
@@ -451,7 +571,7 @@ export default function App() {
             onOpenArtistProfile={handleOpenArtistProfile}
             onOpenPlaylistModal={(t) => setPlaylistModalTrack(t)}
             onOpenShareModal={(t) => setShareModalTrack(t)}
-            onOpenUploadModal={() => setIsUploadOpen(true)}
+            onOpenUploadModal={openUpload}
           />
         )}
 
@@ -559,7 +679,11 @@ export default function App() {
         isOpen={isUploadOpen}
         onClose={() => setIsUploadOpen(false)}
         onTrackCreated={handleTrackCreated}
+        user={authUser ? { id: authUser.id, name: accountName(authUser) } : null}
+        onRequireAuth={openAuth}
       />
+
+      <AuthModal isOpen={authOpen} onClose={() => setAuthOpen(false)} />
 
       <QueueDrawer
         isOpen={isQueueOpen}
@@ -590,6 +714,8 @@ export default function App() {
           onToggleTrackInPlaylist={handleToggleTrackInPlaylist}
         />
       )}
+
+      <SistrumAssistant onUpgrade={() => { void handleUpgrade(); }} />
     </div>
   );
 }

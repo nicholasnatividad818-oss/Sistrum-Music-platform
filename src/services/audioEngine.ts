@@ -132,7 +132,7 @@ class SoundEngine {
         this.audioBuffer = await this.ctx.decodeAudioData(arrayBuffer);
         this.duration = this.audioBuffer.duration;
       }
-    } else if (audioUrl && audioUrl.startsWith('blob:')) {
+    } else if (audioUrl && (audioUrl.startsWith('blob:') || audioUrl.startsWith('https://') || audioUrl.startsWith('http://'))) {
       try {
         const response = await fetch(audioUrl);
         const blob = await response.blob();

@@ -1,6 +1,8 @@
 import { useState, useRef, ChangeEvent, DragEvent } from 'react';
 import { Track } from '../types';
 import { audioEngine } from '../services/audioEngine';
+import { publishTrack } from '../services/tracks';
+import { searchCatalog, type CatalogTrack } from '../services/catalog';
 import { Waveform } from './Waveform';
 import { BeatMakerStudio } from './BeatMakerStudio';
 import confetti from 'canvas-confetti';
@@ -10,9 +12,11 @@ interface UploadModalProps {
   isOpen: boolean;
   onClose: () => void;
   onTrackCreated: (newTrack: Track) => void;
+  user: { id: string; name: string } | null;
+  onRequireAuth: () => void;
 }
 
-export function UploadModal({ isOpen, onClose, onTrackCreated }: UploadModalProps) {
+export function UploadModal({ isOpen, onClose, onTrackCreated, user, onRequireAuth }: UploadModalProps) {
   const [activeMode, setActiveMode] = useState<'upload' | 'studio'>('upload');
   
   // Upload State
@@ -24,11 +28,18 @@ export function UploadModal({ isOpen, onClose, onTrackCreated }: UploadModalProp
 
   // Metadata
   const [title, setTitle] = useState('');
-  const [artist, setArtist] = useState('Alex Rivera');
+  const [artist, setArtist] = useState(user?.name || '');
   const [genre, setGenre] = useState('Electronic');
   const [tagsInput, setTagsInput] = useState('Synth, Beats, 2026');
   const [description, setDescription] = useState('');
   const [coverArtUrl, setCoverArtUrl] = useState('https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=600&auto=format&fit=crop&q=80');
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [publishing, setPublishing] = useState(false);
+  const [publishError, setPublishError] = useState<string | null>(null);
+  const [catalogQuery, setCatalogQuery] = useState('');
+  const [catalogResults, setCatalogResults] = useState<CatalogTrack[]>([]);
+  const [catalogPick, setCatalogPick] = useState<CatalogTrack | null>(null);
+  const [catalogError, setCatalogError] = useState<string | null>(null);
 
   // Preview playback
   const [isPreviewPlaying, setIsPreviewPlaying] = useState(false);
@@ -109,6 +120,7 @@ export function UploadModal({ isOpen, onClose, onTrackCreated }: UploadModalProp
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       const url = URL.createObjectURL(file);
+      setCoverFile(file);
       setCoverArtUrl(url);
     }
   };
@@ -121,69 +133,93 @@ export function UploadModal({ isOpen, onClose, onTrackCreated }: UploadModalProp
     'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=600&auto=format&fit=crop&q=80'
   ];
 
-  const handlePublishUploadedTrack = () => {
-    if (!title) return;
-
-    confetti({
-      particleCount: 100,
-      spread: 70,
-      origin: { y: 0.6 }
-    });
-
-    const newTrack: Track = {
-      id: `track-${Date.now()}`,
-      title: title || 'Untitled Track',
-      artist: artist || 'Alex Rivera',
-      artistId: 'current-user',
-      artistAvatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&auto=format&fit=crop&q=80',
-      coverArt: coverArtUrl,
-      duration: Math.round(extractedDuration),
-      bpm: 124,
-      genre: genre,
-      tags: tagsInput.split(',').map((t) => t.trim()).filter(Boolean),
-      waveformData: extractedWaveform.length > 0 ? extractedWaveform : [0.3, 0.5, 0.7, 0.9, 0.6, 0.4, 0.8],
-      playCount: 1,
-      likeCount: 1,
-      repostCount: 0,
-      commentCount: 0,
-      releaseDate: 'Just now',
-      description: description || 'Uploaded to SoundWave platform.',
-      audioUrl: audioUrl || undefined,
-      synthPreset: genre === 'Lo-Fi' ? 'lofi' : genre === 'House' ? 'house' : genre === 'Ambient' ? 'ambient' : 'synthwave',
-      isLiked: true,
-      isReposted: false
-    };
-
-    onTrackCreated(newTrack);
-    onClose();
+  const presetForGenre = (): Track['synthPreset'] => {
+    if (genre === 'Lo-Fi') return 'lofi';
+    if (genre === 'House') return 'house';
+    if (genre === 'Ambient') return 'ambient';
+    return 'synthwave';
   };
 
-  const handleStudioPublish = (trackData: Partial<Track>) => {
-    const newTrack: Track = {
-      id: `track-${Date.now()}`,
-      title: trackData.title || 'Studio Composition',
-      artist: 'Alex Rivera',
-      artistId: 'current-user',
-      artistAvatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&auto=format&fit=crop&q=80',
-      coverArt: trackData.coverArt || coverPresets[0],
-      duration: trackData.duration || 180,
-      bpm: trackData.bpm || 128,
-      genre: trackData.genre || 'Electronic',
-      tags: ['Sequencer', 'Original', 'SoundWave Studio'],
-      waveformData: trackData.waveformData || [0.4, 0.6, 0.8, 0.5, 0.7],
-      playCount: 1,
-      likeCount: 1,
-      repostCount: 0,
-      commentCount: 0,
-      releaseDate: 'Just now',
-      description: 'Created with SoundWave Beat Maker Sequencer.',
-      synthPreset: (trackData.synthPreset as any) || 'synthwave',
-      isLiked: true,
-      isReposted: false
-    };
+  const handlePublishUploadedTrack = async () => {
+    if (!title || publishing) return;
+    if (!user) {
+      onRequireAuth();
+      return;
+    }
+    if (!audioFile) {
+      setPublishError('Choose an audio file to publish.');
+      return;
+    }
+    setPublishing(true);
+    setPublishError(null);
+    try {
+      const newTrack = await publishTrack({
+        userId: user.id,
+        title,
+        artistName: artist || user.name,
+        genre,
+        tags: tagsInput.split(',').map((tag) => tag.trim()).filter(Boolean),
+        description: description || 'Uploaded to Sistrum.',
+        bpm: 124,
+        duration: extractedDuration,
+        waveform: extractedWaveform.length > 0 ? extractedWaveform : [0.3, 0.5, 0.7, 0.9, 0.6, 0.4, 0.8],
+        audioFile,
+        coverFile,
+        coverUrl: coverFile ? undefined : coverArtUrl,
+        synthPreset: presetForGenre(),
+        catalogTrackId: catalogPick?.id,
+        isrc: catalogPick?.isrc || undefined,
+      });
+      confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+      onTrackCreated(newTrack);
+      onClose();
+    } catch (err) {
+      setPublishError(err instanceof Error ? err.message : 'Publish failed');
+    } finally {
+      setPublishing(false);
+    }
+  };
 
-    onTrackCreated(newTrack);
-    onClose();
+  const handleStudioPublish = async (trackData: Partial<Track>) => {
+    if (!user) {
+      onRequireAuth();
+      return;
+    }
+    setPublishing(true);
+    setPublishError(null);
+    try {
+      const newTrack = await publishTrack({
+        userId: user.id,
+        title: trackData.title || 'Studio Composition',
+        artistName: user.name,
+        genre: trackData.genre || 'Electronic',
+        tags: ['Sequencer', 'Original', 'Sistrum Studio'],
+        description: 'Created with the Sistrum beat maker.',
+        bpm: trackData.bpm || 128,
+        duration: trackData.duration || 180,
+        waveform: trackData.waveformData || [0.4, 0.6, 0.8, 0.5, 0.7],
+        synthPreset: trackData.synthPreset || 'synthwave',
+        coverUrl: trackData.coverArt || coverPresets[0],
+      });
+      onTrackCreated(newTrack);
+      onClose();
+    } catch (err) {
+      setPublishError(err instanceof Error ? err.message : 'Publish failed');
+    } finally {
+      setPublishing(false);
+    }
+  };
+
+  const handleCatalogSearch = async () => {
+    setCatalogError(null);
+    try {
+      const rows = await searchCatalog(catalogQuery);
+      setCatalogResults(rows);
+      if (rows.length === 0) setCatalogError('No catalog matches.');
+    } catch (err) {
+      setCatalogResults([]);
+      setCatalogError(err instanceof Error ? err.message : 'Catalog search failed');
+    }
   };
 
   return (
@@ -234,6 +270,7 @@ export function UploadModal({ isOpen, onClose, onTrackCreated }: UploadModalProp
         {/* Content Body */}
         {activeMode === 'studio' ? (
           <div className="p-6">
+            {publishError && <p className="px-6 pt-3 text-xs text-rose-300">{publishError}</p>}
             <BeatMakerStudio onPublishTrack={handleStudioPublish} onClose={onClose} />
           </div>
         ) : (
@@ -347,7 +384,10 @@ export function UploadModal({ isOpen, onClose, onTrackCreated }: UploadModalProp
                       key={idx}
                       src={preset}
                       alt="Preset"
-                      onClick={() => setCoverArtUrl(preset)}
+                      onClick={() => {
+                        setCoverFile(null);
+                        setCoverArtUrl(preset);
+                      }}
                       className={`w-8 h-8 rounded-lg object-cover cursor-pointer border-2 transition-all ${
                         coverArtUrl === preset ? 'border-[#ff5500] scale-105' : 'border-transparent opacity-70 hover:opacity-100'
                       }`}
@@ -410,6 +450,47 @@ export function UploadModal({ isOpen, onClose, onTrackCreated }: UploadModalProp
                 </div>
 
                 <div>
+                  <label className="text-xs font-semibold text-neutral-300 block mb-1">NRN Catalog link (optional)</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={catalogQuery}
+                      onChange={(e) => setCatalogQuery(e.target.value)}
+                      placeholder="Search title or artist"
+                      className="flex-1 bg-neutral-950 border border-neutral-700/80 rounded-xl px-4 py-2 text-xs text-white focus:border-[#ff5500] outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => void handleCatalogSearch()}
+                      className="px-3 py-2 rounded-xl bg-neutral-800 text-xs font-bold text-white"
+                    >
+                      Search
+                    </button>
+                  </div>
+                  {catalogPick && (
+                    <p className="text-[11px] text-emerald-300 mt-1">
+                      Linked: {catalogPick.title} — {catalogPick.artist}
+                      {catalogPick.isrc ? ` · ${catalogPick.isrc}` : ''}
+                    </p>
+                  )}
+                  {catalogError && <p className="text-[11px] text-amber-300 mt-1">{catalogError}</p>}
+                  {catalogResults.length > 0 && (
+                    <div className="mt-2 max-h-28 overflow-y-auto space-y-1">
+                      {catalogResults.map((row) => (
+                        <button
+                          key={row.id}
+                          type="button"
+                          onClick={() => setCatalogPick(row)}
+                          className="w-full text-left text-[11px] text-neutral-200 px-2 py-1 rounded-lg hover:bg-neutral-800"
+                        >
+                          {row.title} — {row.artist}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div>
                   <label className="text-xs font-semibold text-neutral-300 block mb-1">Track Story / Description</label>
                   <textarea
                     rows={2}
@@ -423,9 +504,9 @@ export function UploadModal({ isOpen, onClose, onTrackCreated }: UploadModalProp
             </div>
 
             {/* Footer Buttons */}
-            <div className="pt-4 border-t border-neutral-800 flex items-center justify-between">
-              <span className="text-xs text-neutral-400">
-                By publishing, you share this sound with the SoundWave community.
+            <div className="pt-4 border-t border-neutral-800 flex items-center justify-between gap-3">
+              <span className={`text-xs ${publishError ? 'text-rose-300' : 'text-neutral-400'}`}>
+                {publishError || 'Publishing stores this track on your Sistrum account. Free includes 3 tracks and 100 MB.'}
               </span>
 
               <div className="flex items-center gap-3">
@@ -439,12 +520,12 @@ export function UploadModal({ isOpen, onClose, onTrackCreated }: UploadModalProp
                 <button
                   type="button"
                   id="publish-track-btn"
-                  onClick={handlePublishUploadedTrack}
-                  disabled={!title}
+                  onClick={() => void handlePublishUploadedTrack()}
+                  disabled={!title || publishing}
                   className="px-6 py-2.5 rounded-xl bg-[#ff5500] hover:bg-[#ff6611] disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold transition-all shadow-md shadow-[#ff5500]/25 flex items-center gap-2"
                 >
                   <Sparkles className="w-4 h-4" />
-                  <span>Publish Track</span>
+                  <span>{publishing ? 'Publishing…' : 'Publish Track'}</span>
                 </button>
               </div>
             </div>

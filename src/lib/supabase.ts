@@ -1,25 +1,27 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { usableEnv } from './env';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseUrl = usableEnv(import.meta.env.VITE_SUPABASE_URL);
 const supabasePublishableKey =
-  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  usableEnv(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY) ||
+  usableEnv(import.meta.env.VITE_SUPABASE_ANON_KEY) ||
+  usableEnv(import.meta.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
 
-if (!supabaseUrl) {
-  throw new Error('Missing VITE_SUPABASE_URL');
-}
+export const isSupabaseConfigured = Boolean(supabaseUrl && supabasePublishableKey);
 
-if (!supabasePublishableKey) {
-  throw new Error('Missing VITE_SUPABASE_PUBLISHABLE_KEY');
-}
+export const supabase: SupabaseClient | null = isSupabaseConfigured
+  ? createClient(supabaseUrl as string, supabasePublishableKey as string, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+      },
+    })
+  : null;
 
-export const supabase = createClient(
-  supabaseUrl,
-  supabasePublishableKey,
-  {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: true,
-    },
+export function requireSupabase(): SupabaseClient {
+  if (!supabase) {
+    throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY.');
   }
-);
+  return supabase;
+}
