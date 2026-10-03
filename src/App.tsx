@@ -94,6 +94,8 @@ export default function App() {
   const [reportModalTrack, setReportModalTrack] = useState<Track | null>(null);
   const [accountDeletePending, setAccountDeletePending] = useState(false);
 
+  const playbackVersion = useRef(0);
+  const loadedTrackId = useRef<string | null>(null);
   const requestVersion = useRef(0);
   const [authReady, setAuthReady] = useState(false);
   const [recovering, setRecovering] = useState(false);
@@ -130,6 +132,8 @@ export default function App() {
       setTracks([]); setArtists([]); setPlaylists([]); setCommentsMap({});
       setProfile(null); setFollowedArtistIds([]); setHistory([]); setQueue([]);
       setSelectedTrack(null); setCurrentTrack(null); setIsPlaying(false);
+      ++playbackVersion.current;
+      loadedTrackId.current = null;
       audioEngine.pause();
       setIsLoadingData(true);
       if (event === 'PASSWORD_RECOVERY') { setRecovering(true); setIsAuthOpen(true); }
@@ -164,6 +168,9 @@ export default function App() {
 
   // Play a specific track
   const handlePlayTrack = async (track: Track) => {
+    const version = ++playbackVersion.current;
+    loadedTrackId.current = null;
+    setIsPlaying(false);
     setCurrentTrack(track);
     setDuration(track.duration);
     setCurrentTime(0);
@@ -178,15 +185,19 @@ export default function App() {
         track.bpm,
         track.audioUrl
       );
+      if (version !== playbackVersion.current) return;
+      loadedTrackId.current = track.id;
       audioEngine.play();
       setIsPlaying(true);
     } catch {
+      if (version !== playbackVersion.current) return;
       setDataError('This track could not be played. The file may be unavailable or unsupported.');
       setIsPlaying(false);
     }
   };
 
   const handlePauseTrack = () => {
+    ++playbackVersion.current;
     audioEngine.pause();
     setIsPlaying(false);
   };
@@ -198,6 +209,8 @@ export default function App() {
     }
     if (isPlaying) {
       handlePauseTrack();
+    } else if (loadedTrackId.current !== currentTrack.id) {
+      void handlePlayTrack(currentTrack);
     } else {
       audioEngine.play();
       setIsPlaying(true);
