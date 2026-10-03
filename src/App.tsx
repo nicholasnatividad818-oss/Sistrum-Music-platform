@@ -21,6 +21,7 @@ import {
   setPlaylistTrack,
   setTrackLike,
   setTrackRepost,
+  updateTrack,
 } from './services/platform';
 import { Navbar } from './components/Navbar';
 import { DiscoverView } from './components/DiscoverView';
@@ -318,6 +319,17 @@ export default function App() {
     }
   };
 
+  const handleUpdateTrack = async (trackId: string, patch: Partial<Track>) => {
+    const activeUser = requireUser();
+    if (!activeUser) return;
+    try {
+      await updateTrack(activeUser.id, trackId, patch);
+      await refreshData(activeUser);
+    } catch (caught) {
+      setDataError(caught instanceof Error ? caught.message : 'Unable to update this track.');
+    }
+  };
+
   const handleTrackCreated = async () => {
     await refreshData(user);
     setActiveTab('library');
@@ -573,6 +585,11 @@ export default function App() {
             onSelectTrack={handleOpenTrackDetail}
             viewerProfile={profile}
             onRequireAuth={() => setIsAuthOpen(true)}
+            onUpdateTrack={
+              user?.id === selectedTrack.artistId
+                ? (patch) => handleUpdateTrack(selectedTrack.id, patch)
+                : undefined
+            }
           />
         )}
 
