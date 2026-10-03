@@ -46,4 +46,5 @@ test('deployment includes validation and explicit deploy on matching port', () =
   assert.match(nginx, /listen 8080;/);
   assert.match(nginx, /location = \/healthz/);
   assert.doesNotMatch(cloud, /\$COMMIT_SHA/);
+  assert.match(readFileSync('index.html', 'utf8'), /<title>Sistrum/);
 });

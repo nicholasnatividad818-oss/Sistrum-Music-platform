@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { build } from 'esbuild';
-const { outputFiles } = await build({ entryPoints: ['src/services/platform.ts'], bundle: true, write: false, format: 'esm', platform: 'browser', plugins: [{ name: 'mock-supabase', setup(build) { build.onResolve({ filter: /lib\/supabase$/ }, () => ({ path: 'supabase', namespace: 'test' })); build.onLoad({ filter: /.*/, namespace: 'test' }, () => ({ contents: 'export const supabase = globalThis.testSupabase;' })); } }] });
+const { outputFiles } = await build({ entryPoints: ['src/services/platform.ts'], bundle: true, write: false, format: 'esm', platform: 'browser', plugins: [{ name: 'mock-supabase', setup(build) { build.onResolve({ filter: /lib\/supabase$/ }, () => ({ path: 'supabase', namespace: 'test' })); build.onLoad({ filter: /.*/, namespace: 'test' }, () => ({ contents: 'export const isSupabaseConfigured = true; export const supabase = globalThis.testSupabase;' })); } }] });
 let n = 0;
 async function setup({ insertError = null, cleanupError = null, coverError = null } = {}) {
   const calls = [];

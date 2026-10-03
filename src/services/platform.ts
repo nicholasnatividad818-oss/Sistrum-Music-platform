@@ -1,5 +1,6 @@
 import type { User } from '@supabase/supabase-js';
-import { supabase } from '../lib/supabase';
+import { isSupabaseConfigured, supabase } from '../lib/supabase';
+import { MOCK_ARTISTS, MOCK_COMMENTS, MOCK_PLAYLISTS, MOCK_TRACKS } from '../data/mockData';
 import type { Artist, Comment, Playlist, Track, UserProfile } from '../types';
 import type { Tables } from '../lib/database.types';
 
@@ -89,7 +90,20 @@ function mapTrack(
   };
 }
 
+function demoPlatformData(): PlatformData {
+  return {
+    tracks: MOCK_TRACKS,
+    artists: MOCK_ARTISTS,
+    playlists: MOCK_PLAYLISTS,
+    comments: MOCK_COMMENTS,
+    followedArtistIds: [],
+    profile: null,
+  };
+}
+
 export async function loadPlatformData(user: User | null): Promise<PlatformData> {
+  if (!isSupabaseConfigured) return demoPlatformData();
+
   const baseQueries = await Promise.all([
     supabase.from('profiles').select('*').limit(1000),
     supabase.from('tracks').select('*').order('release_date', { ascending: false }).limit(200),
@@ -293,6 +307,7 @@ export interface PublishTrackInput {
 }
 
 export async function publishTrack(input: PublishTrackInput): Promise<void> {
+  if (!isSupabaseConfigured) throw new Error('Publishing needs VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY on Vercel.');
   if (!input.title.trim() || input.title.trim().length > 200) throw new Error('Enter a title of 1–200 characters.');
   if (!Number.isFinite(input.duration) || input.duration <= 0) throw new Error('Audio duration must be greater than zero.');
   if (input.audioFile && (!input.audioFile.size || input.audioFile.size > 100 * 1024 * 1024)) throw new Error('Choose an audio file under 100 MB.');
