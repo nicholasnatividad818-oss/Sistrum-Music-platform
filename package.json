@@ -1,23 +1,29 @@
 {
-  "name": "react-example",
+  "name": "sistrum-music-platform",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
     "build": "vite build",
     "preview": "vite preview",
-    "clean": "rm -rf dist server.js",
-    "lint": "tsc --noEmit"
+    "clean": "node --input-type=module -e \"import { rmSync } from 'node:fs'; rmSync('dist', { recursive: true, force: true });\"",
+    "test": "node --test tests/*.test.mjs",
+    "check": "npm run lint && npm test && npm run build",
+    "lint": "tsc --noEmit",
+    "dev:spotify": "vite --port=8000 --strictPort --host=127.0.0.1",
+    "test:spotify": "node --test tests/spotify.test.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
+    "@supabase/supabase-js": "2.116.0",
     "@tailwindcss/vite": "^4.1.14",
     "@types/canvas-confetti": "^1.9.0",
     "@vitejs/plugin-react": "4.3.4",
     "canvas-confetti": "^1.9.4",
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
+    "feed-media-audio-player": "^1.103.3",
     "lucide-react": "^0.546.0",
     "motion": "^12.23.24",
     "react": "^19.0.1",
@@ -25,11 +31,13 @@
     "vite": "5.4.14"
   },
   "devDependencies": {
+    "@types/express": "^4.17.21",
     "@types/node": "^22.14.0",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
     "autoprefixer": "^10.4.21",
     "tailwindcss": "^4.1.14",
     "typescript": "~5.8.2",
-    "vite": "5.4.14",
-    "@types/express": "^4.17.21"
+    "vite": "5.4.14"
   }
 }
