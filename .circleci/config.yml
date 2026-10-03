@@ -1,0 +1,19 @@
+version: 2.1
+
+jobs:
+  release-checks:
+    docker:
+      - image: cimg/node:22.22
+    steps:
+      - checkout
+      - run:
+          name: Install locked dependencies
+          command: npm ci
+      - run:
+          name: Check types, tests, and production build
+          command: npm run check
+
+workflows:
+  validate:
+    jobs:
+      - release-checks

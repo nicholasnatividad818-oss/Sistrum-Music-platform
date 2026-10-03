@@ -1,0 +1,10 @@
+# Sistrum
+
+> NRN licensed music store: catalog, radio, vault escrow, and a global player.
+
+- Site: https://sistrum-music-platform.vercel.app/
+- Store: https://sistrum-music-platform.vercel.app/store.html
+- Privacy: https://sistrum-music-platform.vercel.app/privacy.html
+- Terms: https://sistrum-music-platform.vercel.app/terms.html
+
+Demo shelves load when Supabase is unset. Publishing and accounts need VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY.

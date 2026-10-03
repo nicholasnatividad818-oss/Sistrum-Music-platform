@@ -31,6 +31,10 @@ export interface Track {
   description?: string;
   isLiked?: boolean;
   isReposted?: boolean;
+  catalogTrackId?: string;
+  catalogSource?: "nrn-catalog";
+  isrc?: string;
+  catalogSyncedAt?: string;
   audioUrl?: string; // If uploaded audio file / blob
   synthPreset?: 'lofi' | 'synthwave' | 'house' | 'ambient' | 'trap' | 'futurebass' | 'chillhop';
   stems?: {
@@ -75,7 +79,7 @@ export interface Artist {
   };
 }
 
-export type ActiveTab = 'discover' | 'stream' | 'music' | 'library' | 'pios' | 'upload' | 'artist' | 'track-detail';
+export type ActiveTab = 'spotify' | 'discover' | 'stream' | 'music' | 'library' | 'pios' | 'upload' | 'artist' | 'track-detail' | 'vault' | 'deal';
 
 export type PIOSIntentScope = 'private' | 'direct' | 'circle';
 export type PIOSIntentSource = 'text' | 'voice' | 'gesture' | 'semg' | 'eeg';
@@ -120,3 +124,16 @@ export interface BeatStep {
   bass: boolean;
   synth: number | null; // note index or null
 }
+export interface UserProfile {
+  id: string;
+  username: string | null;
+  displayName: string;
+  avatarUrl: string;
+  bannerUrl: string;
+  bio: string;
+  location: string;
+  isVerified: boolean;
+  termsAcceptedAt: string | null;
+}
+
+export type LegalDocument = 'terms' | 'privacy' | 'community' | 'copyright';
