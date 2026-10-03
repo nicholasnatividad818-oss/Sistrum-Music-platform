@@ -1,0 +1,18 @@
+export const GENRE_LIST = [
+  'All Genres',
+  'Electronic',
+  'Synthwave',
+  'Lo-Fi',
+  'House',
+  'Ambient',
+  'Trap',
+  'Chillhop',
+  'Future Bass',
+  'Hip-Hop',
+  'R&B',
+  'Reggae',
+  'Rock',
+  'Metal',
+  'Folk',
+  'Experimental',
+];

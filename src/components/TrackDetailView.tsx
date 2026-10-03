@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { Track, Comment, Artist } from '../types';
+import { Track, Comment, Artist, UserProfile } from '../types';
 import { Waveform } from './Waveform';
 import {
   Play,
@@ -16,7 +16,8 @@ import {
   Music,
   Tag,
   Clock,
-  ThumbsUp
+  ThumbsUp,
+  Flag
 } from 'lucide-react';
 
 interface TrackDetailViewProps {
@@ -37,9 +38,12 @@ interface TrackDetailViewProps {
   isFollowingArtist: boolean;
   onOpenPlaylistModal: (track: Track) => void;
   onOpenShareModal: (track: Track) => void;
+  onReportTrack: (track: Track) => void;
   onOpenArtistProfile: (artistId: string) => void;
   relatedTracks: Track[];
   onSelectTrack: (track: Track) => void;
+  viewerProfile: UserProfile | null;
+  onRequireAuth: () => void;
 }
 
 export function TrackDetailView({
@@ -60,9 +64,12 @@ export function TrackDetailView({
   isFollowingArtist,
   onOpenPlaylistModal,
   onOpenShareModal,
+  onReportTrack,
   onOpenArtistProfile,
   relatedTracks,
-  onSelectTrack
+  onSelectTrack,
+  viewerProfile,
+  onRequireAuth
 }: TrackDetailViewProps) {
   const isPlayingThis = isCurrentlyPlaying && isPlayingGlobal;
   const [commentText, setCommentText] = useState('');
@@ -177,8 +184,8 @@ export function TrackDetailView({
           <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 shadow-sm">
             <form onSubmit={handleCommentSubmit} className="flex items-center gap-3">
               <img
-                src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80"
-                alt="Your Avatar"
+                src={viewerProfile?.avatarUrl || 'https://images.unsplash.com/photo-1520975958225-57c3a5b11c0b?w=100&auto=format&fit=crop&q=80'}
+                alt={viewerProfile?.displayName || 'Guest listener'}
                 className="w-9 h-9 rounded-full object-cover shrink-0 border border-neutral-700"
               />
 
@@ -187,7 +194,10 @@ export function TrackDetailView({
                   type="text"
                   value={commentText}
                   onChange={(e) => setCommentText(e.target.value)}
-                  placeholder={`Write a comment at ${formatTime(activeCommentTimestamp)}...`}
+                  onFocus={() => {
+                    if (!viewerProfile) onRequireAuth();
+                  }}
+                  placeholder={viewerProfile ? `Write a comment at ${formatTime(activeCommentTimestamp)}...` : 'Sign in to comment…'}
                   className="w-full bg-neutral-950 border border-neutral-700/80 rounded-xl pl-4 pr-24 py-2.5 text-xs text-white placeholder-neutral-500 focus:border-[#ff5500] outline-none"
                 />
 
@@ -240,6 +250,13 @@ export function TrackDetailView({
               >
                 <Share2 className="w-4 h-4" />
                 <span>Share</span>
+              </button>
+              <button
+                onClick={() => onReportTrack(track)}
+                className="px-3.5 py-2 rounded-xl bg-neutral-950 border border-neutral-800 hover:border-rose-800 text-neutral-400 hover:text-rose-300 text-xs font-bold flex items-center gap-2 transition-all"
+              >
+                <Flag className="w-4 h-4" />
+                <span>Report</span>
               </button>
 
               <button
