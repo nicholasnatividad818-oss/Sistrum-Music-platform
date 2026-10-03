@@ -4,6 +4,7 @@ const App = React.lazy(() => import('./App'));
 import { isSupabaseConfigured } from './lib/supabase';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { NRNMusicLauncher } from './components/NRNMusicLauncher';
+import { PIOSIntentLauncher } from './components/PIOSIntentLauncher';
 import { registerSistrumPWA } from './pwa';
 import './index.css';
 
@@ -22,5 +23,6 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       </React.Suspense>
     </ErrorBoundary>
     <NRNMusicLauncher />
+    <PIOSIntentLauncher />
   </React.StrictMode>
 );
