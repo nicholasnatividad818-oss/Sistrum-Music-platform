@@ -375,6 +375,7 @@ export async function updateTrack(
   trackId: string,
   patch: Partial<Pick<Track, 'title' | 'lyrics' | 'coverArt' | 'genre' | 'description'>>
 ): Promise<void> {
+  if (!isSupabaseConfigured) throw new Error('Publishing needs VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY on Vercel.');
   const updates: {
     title?: string;
     lyrics?: string | null;
