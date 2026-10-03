@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import type { User } from '@supabase/supabase-js';
+import { Analytics } from '@vercel/analytics/react';
 import { SpotifyView } from './components/SpotifyView';
 import { hasSpotifyCallback } from './services/spotify';
 import { Track, Artist, Playlist, Comment, ActiveTab, EqualizerSettings, LegalDocument, UserProfile } from './types';
@@ -706,6 +707,7 @@ export default function App() {
         onClose={() => setReportModalTrack(null)}
         onSubmit={handleReportTrack}
       />
+      <Analytics />
 
     </div>
   );
