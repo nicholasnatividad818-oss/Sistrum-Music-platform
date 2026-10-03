@@ -1,3 +1,6 @@
+import type { MusicTopic, MusicReply, MusicReport } from '../services/community.types';
+import type { CommunityProposal, ProposalVote, ProposalProject, DeveloperApplication, ProjectMilestone, DeveloperReputation } from '../services/proposals.types';
+import type { SignalCampaign, SignalJob } from '../services/signal.types';
 export type Json =
   | string
   | number
@@ -14,6 +17,19 @@ export type Database = {
   }
   public: {
     Tables: {
+      music_topics: { Row: MusicTopic; Insert: Partial<MusicTopic>; Update: Partial<MusicTopic>; Relationships: [] };
+      music_replies: { Row: MusicReply; Insert: Partial<MusicReply>; Update: Partial<MusicReply>; Relationships: [] };
+      music_reports: { Row: MusicReport; Insert: Partial<MusicReport>; Update: Partial<MusicReport>; Relationships: [] };
+
+      community_proposals: { Row: CommunityProposal; Insert: Partial<CommunityProposal>; Update: Partial<CommunityProposal>; Relationships: [] };
+      proposal_votes: { Row: ProposalVote; Insert: Partial<ProposalVote>; Update: Partial<ProposalVote>; Relationships: [] };
+      proposal_projects: { Row: ProposalProject; Insert: Partial<ProposalProject>; Update: Partial<ProposalProject>; Relationships: [] };
+      developer_applications: { Row: DeveloperApplication; Insert: Partial<DeveloperApplication>; Update: Partial<DeveloperApplication>; Relationships: [] };
+      project_milestones: { Row: ProjectMilestone; Insert: Partial<ProjectMilestone>; Update: Partial<ProjectMilestone>; Relationships: [] };
+      proposal_operators: { Row: {user_id: string; created_at: string}; Insert: {user_id: string}; Update: {user_id?: string}; Relationships: [] };
+
+      signal_campaigns: { Row: SignalCampaign; Insert: Partial<SignalCampaign>; Update: Partial<SignalCampaign>; Relationships: [] };
+      signal_jobs: { Row: SignalJob; Insert: Partial<SignalJob>; Update: Partial<SignalJob>; Relationships: [] };
       comments: {
         Row: {
           body: string
@@ -360,7 +376,7 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      developer_reputation: { Row: DeveloperReputation; Relationships: [] };
     }
     Functions: {
       [_ in never]: never
