@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-const App = React.lazy(() => import('./App'));
+const PlatformRoot = React.lazy(() => import('./PlatformRoot'));
 import { isSupabaseConfigured } from './lib/supabase';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { NRNMusicLauncher } from './components/NRNMusicLauncher';
@@ -18,7 +18,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         </p>
       )}
       <React.Suspense fallback={<p role="status">Connecting to Sistrum…</p>}>
-        <App />
+        <PlatformRoot />
       </React.Suspense>
     </ErrorBoundary>
     <NRNMusicLauncher />
