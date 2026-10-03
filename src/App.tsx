@@ -27,6 +27,7 @@ import { ShareModal } from './components/ShareModal';
 import { PlaylistModal } from './components/PlaylistModal';
 import { SistrumAssistant } from './components/SistrumAssistant';
 import { AuthModal } from './components/AuthModal';
+import { ExternalLink } from 'lucide-react';
 
 function accountName(user: User | null): string {
   if (!user) return CURRENT_USER.name;
@@ -621,6 +622,22 @@ export default function App() {
           />
         )}
       </main>
+
+      <footer className="max-w-7xl w-full mx-auto px-4 pt-2 pb-28">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-neutral-800 pt-4 pr-20 text-xs text-neutral-400">
+          <p>Sistrum</p>
+          <a
+            id="footer-instinct-ink"
+            href="https://instinctinkidentity.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 font-semibold text-white hover:text-[#ff5500]"
+          >
+            Instinct Ink Identity
+            <ExternalLink className="w-3.5 h-3.5" />
+          </a>
+        </div>
+      </footer>
 
       {/* Docked Global Bottom Player Bar */}
       <GlobalPlayer

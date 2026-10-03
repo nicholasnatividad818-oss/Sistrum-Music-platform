@@ -13,7 +13,8 @@ import {
   Disc,
   Compass,
   ArrowRight,
-  Plus
+  Plus,
+  ExternalLink
 } from 'lucide-react';
 
 interface DiscoverViewProps {
@@ -126,6 +127,24 @@ export function DiscoverView({
           </div>
         </div>
       )}
+
+      <a
+        id="instinct-ink-link"
+        href="https://instinctinkidentity.com"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center justify-between gap-4 rounded-2xl border border-neutral-800 bg-neutral-900 px-5 py-4 hover:border-[#ff5500]/70 transition-colors"
+      >
+        <div className="min-w-0">
+          <p className="text-[11px] font-extrabold uppercase tracking-wider text-[#ff5500]">Merch</p>
+          <p className="text-sm font-black text-white">Instinct Ink Identity</p>
+          <p className="text-xs text-neutral-400 truncate">Original art. Everyday expression.</p>
+        </div>
+        <span className="shrink-0 inline-flex items-center gap-1.5 text-xs font-bold text-white">
+          Shop
+          <ExternalLink className="w-3.5 h-3.5 text-[#ff5500]" />
+        </span>
+      </a>
 
       {/* Genre Filter Chips */}
       <div className="space-y-3">
