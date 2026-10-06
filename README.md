@@ -1,42 +1,107 @@
-name: Contrib miner
+# Sistrum Music Platform
 
-on:
-  schedule:
-    - cron: "17 3 * * *"
-  workflow_dispatch:
+Sistrum is a modern music platform built with React, Vite, TypeScript, and a lightweight Express server. It provides a streaming-inspired UI with catalog browsing, artist and profile surfaces, and a containerized production setup.
 
-permissions:
-  contents: read
+## Features
 
-jobs:
-  miner:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      contents: write
-    steps:
-      - uses: aserenaa/contrib-miner@v1
-        with:
-          github_user_name: ${{ github.repository_owner }}
-          output: dist/miner.gif
-          light_output: dist/miner-light.gif
+- Music catalog and discovery experience
+- Responsive frontend built with React + Vite
+- Type-safe app logic with TypeScript
+- Backend and API support via Express
+- Supabase and Google GenAI integration points
+- Production-ready Docker build
+- CI checks and automated validation
 
-      - name: Publish to the output branch
-        working-directory: dist
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          git init -q -b output
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add .
-          git commit -qm "Update miner GIFs"
-          git push -qf "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" output# 🪨 nicholasnatividad818-oss
+## Tech Stack
 
-## Contribution Mining
+- Frontend: React, Vite, Tailwind CSS
+- Runtime: TypeScript, Node.js
+- Server: Express
+- Data / App Services: Supabase, Google GenAI
+- Containerization: Docker
+- Quality gates: TypeScript checks, tests, production build
 
-![Contribution Miner](https://raw.githubusercontent.com/nicholasnatividad818-oss/nicholasnatividad818-oss/output/miner.gif)
+## Prerequisites
 
-![Contribution Miner Light](https://raw.githubusercontent.com/nicholasnatividad818-oss/nicholasnatividad818-oss/output/miner-light.gif)
+Before running the app locally, make sure you have:
 
-*Updated daily via GitHub Actions*
+- Node.js 22+
+- npm
+- Docker (for container builds)
+
+## Getting Started
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Start the development server:
+
+```bash
+npm run dev
+```
+
+The app runs on port 3000 by default.
+
+## Available Scripts
+
+```bash
+npm run dev
+npm run build
+npm run preview
+npm run test
+npm run check
+npm run lint
+```
+
+### Script breakdown
+
+- `npm run dev` — start the Vite dev server
+- `npm run build` — production build
+- `npm run preview` — preview the production bundle
+- `npm run test` — run the automated test suite
+- `npm run check` — lint, test, and build the app
+- `npm run lint` — TypeScript compile check without emitting files
+
+## Docker
+
+Build the production container:
+
+```bash
+docker build -t sistrum .
+```
+
+Run the container:
+
+```bash
+docker run -p 8080:8080 sistrum
+```
+
+Then open:
+
+```text
+http://localhost:8080
+```
+
+## CI / Validation
+
+This repository includes a GitHub Actions workflow that:
+
+- installs dependencies
+- runs the quality check suite
+- builds the app
+- validates the application health and key routes inside the Docker container
+
+## Project Notes
+
+The app is structured as a frontend-heavy music platform with supporting server-side and integration layers. It is intended to be run locally for development and in a container for deployment-style verification.
+
+## Contributing
+
+Contributions are welcome. Open a pull request with a clear summary of the change and validation performed.
+
+## License
+
+This project does not currently declare a license in the repository metadata. If you intend to distribute or publish it, add an appropriate open-source license before release.
