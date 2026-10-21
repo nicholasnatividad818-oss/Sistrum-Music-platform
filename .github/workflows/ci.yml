@@ -13,12 +13,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: npm
       - run: npm ci
       - run: npm run check
+      - name: Lightweight release review
+        env:
+          XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
+          REVIEW_BEFORE: ${{ github.event.before }}
+        run: node scripts/deploy-review.mjs
       - name: Build production container
         run: docker build -t sistrum-check .
       - name: Verify container routes
