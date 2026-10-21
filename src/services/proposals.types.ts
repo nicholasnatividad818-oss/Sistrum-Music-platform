@@ -1,0 +1,10 @@
+export type ProposalStatus = 'open' | 'reviewing' | 'accepted' | 'deferred' | 'declined' | 'shipped';
+export type ProposalCategory = 'music' | 'community' | 'creator-tools' | 'accessibility' | 'platform';
+export type CommunityProposal = { id: string; author_id: string; title: string; problem: string; solution: string; success_criteria: string; category: ProposalCategory; status: ProposalStatus; review_note: string; created_at: string };
+export type ProposalVote = { proposal_id: string; voter_id: string; created_at: string };
+export type ProposalProject = { id: string; proposal_id: string; operator_id: string; brief: string; budget_cents: number; deadline: string; developer_id: string | null; created_at: string };
+export type DeveloperApplication = { id: string; project_id: string; developer_id: string; plan: string; portfolio_url: string; created_at: string };
+export type MilestoneStatus = 'pending' | 'submitted' | 'revision' | 'accepted';
+export type ProjectMilestone = { id: string; project_id: string; title: string; acceptance_criteria: string; amount_cents: number; status: MilestoneStatus; pull_request_url: string | null; delivery_notes: string; review_note: string; quality_score: number | null; accepted_at: string | null; created_at: string };
+export type DeveloperReputation = { developer_id: string; accepted_milestones: number; contributing_projects: number; average_quality: number; approved_fees_cents: number };
+export type ProposalData = { proposals: CommunityProposal[]; votes: ProposalVote[]; projects: ProposalProject[]; applications: DeveloperApplication[]; milestones: ProjectMilestone[]; reputation: DeveloperReputation[]; isOperator: boolean };

@@ -13,6 +13,8 @@ class SoundEngine {
 
   // File audio playback
   private audioBuffer: AudioBuffer | null = null;
+  private loadVersion = 0;
+  private loading = false;
   private currentSource: AudioBufferSourceNode | null = null;
   private audioElement: HTMLAudioElement | null = null;
   private audioMediaSource: MediaElementAudioSourceNode | null = null;
@@ -121,37 +123,37 @@ class SoundEngine {
     this.init();
     this.stop();
 
+    const version = ++this.loadVersion;
+    this.loading = true;
+    this.audioBuffer = null;
     this.duration = duration;
-    this.currentBpm = bpm;
+    this.currentBpm = Number.isFinite(bpm) && bpm > 0 ? bpm : 120;
     this.currentPreset = preset;
     this.pauseOffset = 0;
 
-    if (audioBlob) {
-      const arrayBuffer = await audioBlob.arrayBuffer();
-      if (this.ctx) {
-        this.audioBuffer = await this.ctx.decodeAudioData(arrayBuffer);
-        this.duration = this.audioBuffer.duration;
-      }
-    } else if (audioUrl && audioUrl.startsWith('blob:')) {
-      try {
+    try {
+      let bytes: ArrayBuffer | undefined;
+      if (audioBlob) {
+        bytes = await audioBlob.arrayBuffer();
+      } else if (audioUrl) {
         const response = await fetch(audioUrl);
-        const blob = await response.blob();
-        const arrayBuffer = await blob.arrayBuffer();
-        if (this.ctx) {
-          this.audioBuffer = await this.ctx.decodeAudioData(arrayBuffer);
-          this.duration = this.audioBuffer.duration;
-        }
-      } catch {
-        this.audioBuffer = null;
+        if (!response.ok) throw new Error(`Audio request failed (${response.status}).`);
+        bytes = await response.arrayBuffer();
       }
-    } else {
-      this.audioBuffer = null;
+      if (bytes && this.ctx) {
+        const buffer = await this.ctx.decodeAudioData(bytes);
+        if (version !== this.loadVersion) return;
+        this.audioBuffer = buffer;
+        this.duration = buffer.duration;
+      }
+    } finally {
+      if (version === this.loadVersion) this.loading = false;
     }
   }
 
   public play() {
     this.init();
-    if (this.isPlaying) return;
+    if (this.isPlaying || this.loading) return;
 
     if (this.audioBuffer && this.ctx && this.lowFilter) {
       this.currentSource = this.ctx.createBufferSource();

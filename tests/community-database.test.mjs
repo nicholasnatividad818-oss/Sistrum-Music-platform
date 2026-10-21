@@ -1,0 +1,47 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {PGlite} from '@electric-sql/pglite';
+const author='20000000-0000-0000-0000-000000000001',member='20000000-0000-0000-0000-000000000002',moderator='20000000-0000-0000-0000-000000000003';
+test('forum listings, replies, private reports and moderation enforce ownership and posting limits',async()=>{
+ const db=new PGlite();
+ try{
+ await db.exec(`create role anon;create role authenticated;create schema auth;
+ create table auth.users(id uuid primary key,created_at timestamptz default now()-interval '8 days',email_confirmed_at timestamptz default now());
+ create function auth.uid() returns uuid language sql as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+ grant usage on schema auth to authenticated;grant execute on function auth.uid() to authenticated;
+ insert into auth.users(id) values ('${author}'),('${member}'),('${moderator}');`);
+ for(const file of ['20261001044839_community_proposals.sql','20261001045845_music_community_forum.sql'])await db.exec(readFileSync(`supabase/migrations/${file}`,'utf8'));
+ await db.query('insert into proposal_operators(user_id) values ($1)',[moderator]);
+ const act=async id=>db.exec(`reset role;set role authenticated;select set_config('request.jwt.claim.sub','${id}',false)`);
+ await act(author);
+ const {rows:[listing]}=await db.query(`insert into music_topics(author_id,kind,category,title,body,location,price_text) values ($1,'classified','voice-lessons','Online voice lessons','I offer beginner voice lessons with warmups and technique practice.','Online','$40 per session') returning *`,[author]);
+ assert.equal(Math.round((new Date(listing.expires_at)-new Date(listing.created_at))/86400000),30);
+ await act(member);
+ await assert.rejects(db.query(`insert into music_topics(author_id,kind,category,title,body) values ($1,'discussion','general','Spoofed post','This post is attempting to impersonate another member')`,[author]),/row-level security/);
+ const {rows:[reply]}=await db.query(`insert into music_replies(topic_id,author_id,body) values ($1,$2,'Do you offer weekend appointments?') returning id`,[listing.id,member]);
+ await db.query(`insert into music_reports(topic_id,reporter_id,reason) values ($1,$2,'Please review a questionable claim in this listing')`,[listing.id,member]);
+ await act(author);
+ assert.equal((await db.query('select * from music_reports')).rows.length,0);
+ assert.equal((await db.query('update music_replies set status=$1 where id=$2 returning id',['hidden',reply.id])).rows.length,0);
+ await db.query(`update music_topics set status='closed' where id=$1`,[listing.id]);
+ await act(member);
+ await assert.rejects(db.query(`insert into music_replies(topic_id,author_id,body) values ($1,$2,'Another reply')`,[listing.id,member]),/closed/);
+ await act(author);
+ await assert.rejects(db.query(`update music_topics set status='open' where id=$1`,[listing.id]),/Only moderators/);
+ await db.query(`update music_topics set status='hidden' where id=$1`,[listing.id]);
+ await act(member);
+ assert.equal((await db.query('select * from music_topics')).rows.length,0);
+ assert.equal((await db.query('select * from music_replies')).rows.length,0);
+ await act(moderator);
+ assert.equal((await db.query('select * from music_reports')).rows.length,1);
+ await db.query(`update music_topics set status='open' where id=$1`,[listing.id]);
+ await db.query(`update music_replies set status='hidden' where id=$1`,[reply.id]);
+ await db.query(`update music_reports set status='reviewed'`);
+ await act(author);
+ assert.equal((await db.query('select * from music_replies')).rows.length,0);
+ for(let i=0;i<4;i++)await db.query(`insert into music_topics(author_id,kind,category,title,body) values ($1,'discussion','production','Mix question','How can we improve the clarity of a dense mix?')`,[author]);
+ await assert.rejects(db.query(`insert into music_topics(author_id,kind,category,title,body) values ($1,'discussion','production','Another question','This should be rejected by the daily posting limit')`,[author]),/Maximum five/);
+ await db.exec('reset role;set role anon');await assert.rejects(db.query('select * from music_topics'),/permission denied/);
+ }finally{await db.close();}
+});

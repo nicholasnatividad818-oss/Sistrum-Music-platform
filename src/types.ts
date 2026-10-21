@@ -80,7 +80,7 @@ export interface Artist {
   };
 }
 
-export type ActiveTab = 'spotify' | 'discover' | 'stream' | 'music' | 'library' | 'upload' | 'artist' | 'track-detail' | 'vault' | 'deal';
+export type ActiveTab = 'community' | 'proposals' | 'signal' | 'spotify' | 'discover' | 'stream' | 'music' | 'library' | 'upload' | 'artist' | 'track-detail' | 'vault' | 'deal';
 
 export interface EqualizerSettings {
   low: number;   // -12dB to +12dB
