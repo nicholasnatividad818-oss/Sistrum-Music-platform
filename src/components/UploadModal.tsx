@@ -2,9 +2,10 @@ import { useState, useRef, useEffect, ChangeEvent, DragEvent } from 'react';
 import type { User } from '@supabase/supabase-js';
 import { Track, UserProfile } from '../types';
 import { audioEngine } from '../services/audioEngine';
-import { publishTrack } from '../services/platform';
+import { dataUrlToCoverFile, publishTrack } from '../services/platform';
 import { Waveform } from './Waveform';
 import { BeatMakerStudio } from './BeatMakerStudio';
+import { GenerateStudio, type GenerateStudioValues } from './GenerateStudio';
 import confetti from 'canvas-confetti';
 import { Upload, Music, Image as ImageIcon, Sparkles, X, Check, Disc, Play, Pause, Layers, Loader2 } from 'lucide-react';
 
@@ -18,7 +19,7 @@ interface UploadModalProps {
 }
 
 export function UploadModal({ isOpen, onClose, onTrackCreated, user, profile, onRequireAuth }: UploadModalProps) {
-  const [activeMode, setActiveMode] = useState<'upload' | 'studio'>('upload');
+  const [activeMode, setActiveMode] = useState<'upload' | 'studio' | 'generate'>('upload');
   
   // Upload State
   const [audioFile, setAudioFile] = useState<File | null>(null);
@@ -217,6 +218,52 @@ export function UploadModal({ isOpen, onClose, onTrackCreated, user, profile, on
     }
   };
 
+  const presetFromGenre = (genre: string) => {
+    if (genre === 'Lo-Fi') return 'lofi' as const;
+    if (genre === 'House') return 'house' as const;
+    if (genre === 'Ambient') return 'ambient' as const;
+    if (genre === 'Trap') return 'trap' as const;
+    if (genre === 'Future Bass') return 'futurebass' as const;
+    if (genre === 'Chillhop') return 'chillhop' as const;
+    return 'synthwave' as const;
+  };
+
+  const handleGeneratePublish = async (values: GenerateStudioValues) => {
+    if (!user) {
+      onClose();
+      onRequireAuth();
+      return;
+    }
+    setIsPublishing(true);
+    setPublishError('');
+    try {
+      const coverFileFromGen = dataUrlToCoverFile(values.coverArt);
+      await publishTrack({
+        user,
+        profile,
+        title: values.title,
+        artist: values.artist || profile?.displayName || 'NRN',
+        genre: values.genre,
+        tags: ['Gemini', 'Original', values.genre].filter(Boolean).slice(0, 12),
+        description: values.theme || values.mood || 'Written in Sistrum with Gemini lyrics and cover art.',
+        lyrics: values.lyrics || '',
+        duration: 180,
+        waveformData: Array.from({ length: 75 }, (_, i) => 0.25 + Math.abs(Math.sin(i * 0.37)) * 0.7),
+        coverFile: coverFileFromGen || undefined,
+        coverPresetUrl: coverFileFromGen ? undefined : (values.coverArt?.startsWith('https://') ? values.coverArt : coverPresets[0]),
+        bpm: 124,
+        synthPreset: presetFromGenre(values.genre),
+      });
+      await onTrackCreated();
+      confetti({ particleCount: 90, spread: 70, origin: { y: 0.6 } });
+      onClose();
+    } catch (caught) {
+      setPublishError(caught instanceof Error ? caught.message : 'Unable to publish generated lyrics and cover.');
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md overflow-y-auto animate-in fade-in">
       <div className="bg-neutral-900 border border-neutral-800 rounded-2xl w-full max-w-3xl overflow-hidden shadow-2xl my-8">
@@ -228,7 +275,7 @@ export function UploadModal({ isOpen, onClose, onTrackCreated, user, profile, on
             </div>
             <div>
               <h2 className="text-lg font-black text-white tracking-tight">Sistrum Creator Studio</h2>
-              <p className="text-xs text-neutral-400">Upload audio files or create custom beats in browser</p>
+              <p className="text-xs text-neutral-400">Upload, sequence, or generate lyrics and cover art</p>
             </div>
           </div>
 
@@ -251,6 +298,14 @@ export function UploadModal({ isOpen, onClose, onTrackCreated, user, profile, on
               >
                 Beat Sequencer
               </button>
+              <button
+                onClick={() => setActiveMode('generate')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  activeMode === 'generate' ? 'bg-[#ff5500] text-white shadow-sm' : 'text-neutral-400 hover:text-white'
+                }`}
+              >
+                Lyrics + Cover
+              </button>
             </div>
 
             <button
@@ -266,6 +321,17 @@ export function UploadModal({ isOpen, onClose, onTrackCreated, user, profile, on
         {activeMode === 'studio' ? (
           <div className="p-6">
             <BeatMakerStudio onPublishTrack={handleStudioPublish} onClose={onClose} />
+          </div>
+        ) : activeMode === 'generate' ? (
+          <div className="p-6 max-h-[80vh] overflow-y-auto space-y-4">
+            {publishError && (
+              <p className="text-xs text-rose-400 bg-rose-500/10 border border-rose-500/30 rounded-xl px-3 py-2">{publishError}</p>
+            )}
+            <GenerateStudio
+              initial={{ title, artist, genre }}
+              submitLabel={isPublishing ? 'Publishing…' : 'Publish to Stream'}
+              onSubmit={handleGeneratePublish}
+            />
           </div>
         ) : (
           <div className="p-6 space-y-6 max-h-[80vh] overflow-y-auto">
