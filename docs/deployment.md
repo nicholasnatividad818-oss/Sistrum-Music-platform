@@ -31,10 +31,31 @@ actual values, not a guessed region or repository:
 | `_SPOTIFY_CLIENT_ID` | Optional public client ID; blank uses existing code default |
 | `_SPOTIFY_REDIRECT_URI` | Optional registered callback; blank uses the site's origin |
 
-The pipeline validates types/tests, builds, pushes a BUILD_ID-tagged image, then
-deploys that same image. BUILD_ID also works for manual builds without COMMIT_SHA.
-The deployment explicitly uses port 8080 and preserves existing service access
-policy: it does not automatically grant public access.
+The pipeline validates types/tests, builds, runs the release review below, pushes
+a BUILD_ID-tagged image, then deploys that same image. BUILD_ID also works for
+manual builds without COMMIT_SHA. The deployment explicitly uses port 8080 and
+preserves existing service access policy: it does not automatically grant public
+access.
+
+## Lightweight release review
+
+After tests pass, and before the image is pushed, `scripts/deploy-review.mjs`
+sends a redacted diff to the xAI Responses API (`grok-build-0.1`). It holds the
+release only for a committed secret or client-bundled private key, removal of
+`/healthz`, a port other than 8080, a new public-invoker grant, or an auth, RLS,
+or service-worker change that would expose private API responses. Low and medium
+notes are logged and do not hold the build.
+
+GitHub Actions reads `secrets.XAI_API_KEY`. An empty secret skips the call and
+the check stays green. A hold fails the check.
+
+Cloud Build reads Secret Manager secret `xai-api-key` (`latest`) into
+`XAI_API_KEY` before `docker push`. Create that secret and grant the Cloud Build
+service account `roles/secretmanager.secretAccessor` before the trigger uses this
+file. A missing secret fails the build when Cloud Build fetches it. The key is
+not a Vite variable, Docker build arg, or substitution.
+
+A green local Vite build does not prove a Cloud Run deploy.
 
 Verify required APIs and the build service account's permissions to write the
 Artifact Registry image, deploy Cloud Run, and act as its runtime service account.
