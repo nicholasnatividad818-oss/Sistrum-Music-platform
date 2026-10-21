@@ -12,7 +12,8 @@
     "check": "npm run lint && npm test && npm run build",
     "lint": "tsc --noEmit",
     "dev:spotify": "vite --port=8000 --strictPort --host=127.0.0.1",
-    "test:spotify": "node --test tests/spotify.test.mjs"
+    "test:spotify": "node --test tests/spotify.test.mjs",
+    "test:generate": "node --test tests/generate.test.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
