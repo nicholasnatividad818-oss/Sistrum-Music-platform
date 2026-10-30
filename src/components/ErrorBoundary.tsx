@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { captureSistrumException } from '../lib/posthog';
 
 interface Props { children: ReactNode }
 interface State { hasError: boolean }
@@ -12,6 +13,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error('Sistrum client error', error, info.componentStack);
+    captureSistrumException(error);
   }
 
   render() {

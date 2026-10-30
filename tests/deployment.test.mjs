@@ -59,6 +59,11 @@ test('deployment includes validation and explicit deploy on matching port', () =
   const ciImage = ci.indexOf('docker build');
   assert.ok(ciReview !== -1 && ciReview < ciImage);
   assert.match(ci, /secrets\.XAI_API_KEY/);
+  assert.match(docker, /ARG VITE_POSTHOG_KEY/);
+  assert.match(cloud, /VITE_POSTHOG_KEY=\$_POSTHOG_KEY/);
+  const posthog = readFileSync('src/lib/posthog.ts', 'utf8');
+  assert.match(posthog, /if \(!key/);
+  assert.doesNotMatch(posthog, /phc_[A-Za-z0-9]/);
 });
 
 test('release review redacts bearer tokens and secret keys', () => {

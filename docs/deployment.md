@@ -30,6 +30,8 @@ actual values, not a guessed region or repository:
 | `_DEPLOY_REGION` | Existing Cloud Run service region |
 | `_SPOTIFY_CLIENT_ID` | Optional public client ID; blank uses existing code default |
 | `_SPOTIFY_REDIRECT_URI` | Optional registered callback; blank uses the site's origin |
+| `_POSTHOG_KEY` | Public PostHog project key (`phc_...`). Blank leaves analytics off |
+| `_POSTHOG_HOST` | PostHog ingestion host. Blank in the app falls back to `https://us.i.posthog.com` |
 
 The pipeline validates types/tests, builds, runs the release review below, pushes
 a BUILD_ID-tagged image, then deploys that same image. BUILD_ID also works for
@@ -64,9 +66,12 @@ https://docs.cloud.google.com/build/docs/deploying-builds/deploy-cloud-run
 
 Vite configuration is compiled into public assets. Cloud Run runtime environment
 variables do not reconfigure an already built frontend. Never supply private API
-keys or bearer tokens as VITE variables or Docker build arguments. Feed integrations
-remain unconfigured in this container until their browser credential suitability
-and production approval are verified; do not enable them by embedding private tokens.
+keys or bearer tokens as VITE variables or Docker build arguments. `VITE_POSTHOG_KEY`
+is the public project key only. Set `VITE_POSTHOG_KEY` and `VITE_POSTHOG_HOST` on
+the Vercel project as well, because that is the GitHub-connected production build.
+A blank key ships the app with analytics off. Feed integrations remain unconfigured
+in this container until their browser credential suitability and production approval
+are verified; do not enable them by embedding private tokens.
 
 ## Remaining release checks
 

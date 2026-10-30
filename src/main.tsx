@@ -6,9 +6,11 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { NRNMusicLauncher } from './components/NRNMusicLauncher';
 import { SpeakeasyGate } from './components/SpeakeasyGate';
 import { registerSistrumPWA } from './pwa';
+import { initPosthog } from './lib/posthog';
 import './index.css';
 
 registerSistrumPWA();
+initPosthog();
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

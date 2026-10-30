@@ -13,6 +13,7 @@ import { hasSpotifyCallback } from './services/spotify';
 import { Track, Artist, Playlist, Comment, ActiveTab, EqualizerSettings, LegalDocument, UserProfile } from './types';
 import { audioEngine } from './services/audioEngine';
 import { supabase } from './lib/supabase';
+import { captureSistrum, identifySistrumUser } from './lib/posthog';
 import { signOut } from './services/auth';
 import {
   createComment,
@@ -152,6 +153,14 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (authReady) identifySistrumUser(user?.id ?? null);
+  }, [authReady, user]);
+
+  useEffect(() => {
+    captureSistrum('sistrum_screen', { screen: activeTab });
+  }, [activeTab]);
+
+  useEffect(() => {
     if (authReady) void refreshData(user);
     return () => { ++requestVersion.current; };
   }, [authReady, user, refreshData]);
@@ -199,6 +208,7 @@ export default function App() {
       loadedTrackId.current = track.id;
       audioEngine.play();
       setIsPlaying(true);
+      captureSistrum('track_played', { track_id: track.id });
     } catch {
       if (version !== playbackVersion.current) return;
       setDataError('This track could not be played. The file may be unavailable or unsupported.');
