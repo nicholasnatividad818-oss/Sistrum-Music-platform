@@ -20,7 +20,7 @@
     "@supabase/supabase-js": "2.116.0",
     "@tailwindcss/vite": "^4.1.14",
     "@types/canvas-confetti": "^1.9.0",
-    "@vitejs/plugin-react": "4.3.4",
+    "@vitejs/plugin-react": "6.1.2",
     "canvas-confetti": "^1.9.4",
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
@@ -42,5 +42,9 @@
     "tailwindcss": "^4.1.14",
     "typescript": "~5.8.2",
     "vite": "8.3.3"
+  },
+  "overrides": {
+    "body-parser": "1.20.9",
+    "qs": "6.16.1"
   }
 }

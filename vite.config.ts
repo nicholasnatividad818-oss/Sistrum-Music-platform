@@ -1,6 +1,5 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
-import path from 'path';
 import {defineConfig, loadEnv, type Plugin} from 'vite';
 
 function sistrumGeneratePlugin(): Plugin {
@@ -33,7 +32,7 @@ export default defineConfig(({mode}) => {
     plugins: [react(), tailwindcss(), sistrumGeneratePlugin()],
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, '.'),
+        '@': import.meta.dirname,
       },
     },
     server: {

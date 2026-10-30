@@ -27,6 +27,7 @@
     "node_modules",
     "dist",
     "supabase/functions",
-    "kick-server"
+    "kick-server",
+    "Sistrum-Music-platform"
   ]
 }
