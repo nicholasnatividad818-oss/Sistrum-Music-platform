@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Track Provenance | Sistrum</title>
+<link rel="stylesheet" href="/style.css">
+<script type="module" src="/app.js"></script>
+</head>
+<body>
+<main>
+<header><p class="brand">SISTRUM / TRACK TOOLS</p><h1>Track provenance</h1>
+<p>Check an original audio file for Suno Content Credentials.</p></header>
+<form>
+<fieldset><legend>Audio source</legend>
+<label><input type="radio" name="source" value="file" checked> Upload a file</label>
+<label><input type="radio" name="source" value="url"> Use a public link</label>
+</fieldset>
+<label id="file-field">Audio file <input id="file" type="file" accept=".mp3,.wav,.flac,.m4a,.aac,.ogg,.opus" required>
+<small>Up to 99 MB. Use the original download when possible.</small></label>
+<label id="url-field" hidden>Direct HTTPS audio link <input id="url" type="url" placeholder="https://example.com/track.mp3" disabled required>
+<small>Use a direct media link without private access credentials.</small></label>
+<label class="consent"><input type="checkbox" required> I agree to send the selected file or link to Suno for this check.</label>
+<button type="submit">Check provenance</button>
+</form>
+<section id="status" role="status" aria-live="polite"></section>
+<footer>Older downloads and re-encoded files can lack credentials. Results cover Suno credentials only and cannot establish human authorship or ownership.</footer>
+</main>
+</body>
+</html>
