@@ -1,21 +1,20 @@
 # Security Policy
 
-## Supported Versions
+## Supported versions
 
-Use this section to tell people about which versions of your project are
-currently being supported with security updates.
+Only the current `main` branch, which is what runs in production, receives security fixes.
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 5.1.x   | :white_check_mark: |
-| 5.0.x   | :x:                |
-| 4.0.x   | :white_check_mark: |
-| < 4.0   | :x:                |
+## Reporting a vulnerability
 
-## Reporting a Vulnerability
+Please do not open a public issue for security problems. Report them privately through
+GitHub's **Security** tab for this repository ("Report a vulnerability"), with steps to
+reproduce and the affected URL or file.
 
-Use this section to tell people how to report a vulnerability.
+You can expect an acknowledgement within 7 days. Confirmed issues are fixed on a branch,
+reviewed through a pull request, and deployed once approved.
 
-Tell them where to go, how often they can expect to get an update on a
-reported vulnerability, what to expect if the vulnerability is accepted or
-declined, etc.
+## Handling secrets
+
+Keys and tokens are never committed. If one is exposed, it is rotated at the issuing
+service (Supabase, Spotify, Stripe, and so on), not just removed from the code.
+See `CONTRIBUTING.md`.
