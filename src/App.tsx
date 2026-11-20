@@ -28,6 +28,7 @@ import {
   updateTrack,
 } from './services/platform';
 import { Navbar } from './components/Navbar';
+import { SoundCloudCatalogPanel } from './components/SoundCloudCatalogPanel';
 import { DiscoverView } from './components/DiscoverView';
 import { StreamView } from './components/StreamView';
 import { LibraryView } from './components/LibraryView';
@@ -495,6 +496,7 @@ export default function App() {
         onSignOut={handleSignOut}
         onDeleteAccount={() => void handleDeleteAccount()}
       />
+      <SoundCloudCatalogPanel user={user} />
 
       {/* Main Content Body */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 pt-6">
