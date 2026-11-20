@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from 'react';
 import { Track, Comment, Artist, UserProfile } from '../types';
 import { Waveform } from './Waveform';
+import { BitcoinPurchasePanel } from './BitcoinPurchasePanel';
+import { WalletConnectPanel } from './WalletConnectPanel';
 import { GenerateStudio } from './GenerateStudio';
 import {
   Play,
@@ -103,6 +105,8 @@ export function TrackDetailView({
 
   return (
     <div className="space-y-6 pb-24 animate-in fade-in select-none">
+      <BitcoinPurchasePanel trackId={track.id} />
+      <WalletConnectPanel />
       {/* SoundCloud Signature Giant Waveform Hero Banner */}
       <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-[#181820] via-[#20202d] to-[#14141a] border border-neutral-800 shadow-2xl p-6 md:p-8">
         <div className="relative z-10 flex flex-col md:flex-row items-stretch justify-between gap-6">

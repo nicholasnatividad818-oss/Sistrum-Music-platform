@@ -1,0 +1,17 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {build} from 'esbuild';
+import {createRequire} from 'node:module';
+import {mkdtempSync,rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+const dir=mkdtempSync(join(tmpdir(),'sistrum-btc-'));
+const output=join(dir,'test.cjs');
+process.on('exit',()=>rmSync(dir,{recursive:true,force:true}));
+await build({stdin:{contents:`export {getBitcoinCheckout} from './src/services/bitcoinCheckout'; import React from 'react'; import {renderToStaticMarkup} from 'react-dom/server'; import {BitcoinPurchasePanel} from './src/components/BitcoinPurchasePanel'; export const render=(trackId,env)=>renderToStaticMarkup(React.createElement(BitcoinPurchasePanel,{trackId,env}));`,resolveDir:process.cwd(),loader:'tsx'},bundle:true,outfile:output,platform:'node',format:'cjs',define:{'import.meta.env':'{}'}});
+const {getBitcoinCheckout,render}=createRequire(import.meta.url)(output);
+const env={VITE_BTCPAY_RELEASE_ID:'release-1',VITE_BTCPAY_CHECKOUT_URL:'https://pay.example.com/apps/release',VITE_BTCPAY_PRICE_LABEL:'$5 USD · paid in BTC',VITE_BTCPAY_SUPPORT_EMAIL:'orders@example.com'};
+test('only the configured release can open checkout',()=>{assert.equal(getBitcoinCheckout('release-1',env).url,env.VITE_BTCPAY_CHECKOUT_URL);assert.equal(getBitcoinCheckout('other',env),null)});
+test('incomplete configuration fails closed',()=>{for(const key of Object.keys(env)){const incomplete={...env};delete incomplete[key];assert.equal(getBitcoinCheckout('release-1',incomplete),null)}});
+test('unsafe checkout URLs and malformed support email fail closed',()=>{for(const url of ['http://pay.example.com','javascript:alert(1)','https://user:pass@pay.example.com','https://localhost/pay','https://127.0.0.1/pay'])assert.equal(getBitcoinCheckout('release-1',{...env,VITE_BTCPAY_CHECKOUT_URL:url}),null);assert.equal(getBitcoinCheckout('release-1',{...env,VITE_BTCPAY_SUPPORT_EMAIL:'bad\n@example.com'}),null)});
+test('panel discloses manual delivery and hides for unconfigured releases',()=>{const html=render('release-1',env);assert.match(html,/Pay with Bitcoin/);assert.match(html,/manually/);assert.match(html,/settled/);assert.match(html,/noopener noreferrer/);assert.equal(render('other',env),'');assert.equal(render('release-1',{}),'')});

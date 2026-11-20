@@ -1,0 +1,8 @@
+# Bitcoin release pilot
+Approved scope: one release, hosted BTCPay checkout, manual payment verification and private download delivery. Existing React/Vite track detail gets a conditional purchase panel. Public build configuration identifies the release, HTTPS checkout URL, displayed fixed price and buyer-support email. Missing or unsafe settings hide the panel. No client-side claim of settlement or automatic unlock. No payment keys or paid download URL are bundled. Configure the same price in BTCPay; buyer email is collected there. Operator verifies Settled status and sends an expiring private storage link.
+
+## Approaches
+Hosted checkout is chosen for the smallest pilot; self-hosted BTCPay adds server maintenance. Automatic invoices/webhooks/delivery are deferred. BTCPay account, connected wallet, actual release/price and deployment access are external prerequisites, not invented values. Public receiving address alone does not create checkout or prove settlement. Live publication requires a verified checkout and deployment access.
+
+## Approved WalletConnect extension
+User requested WalletConnect and GitHub push. Add an optional Ethereum-mainnet connection panel using the official Ethereum provider and public project ID. No transaction methods, signatures, auth or escrow execution. Bitcoin remains the separate hosted checkout; do not imply WalletConnect is the BTC processor. Missing project ID hides wallet connection. Listen for account/chain/disconnect changes, surface cancellation and allow retry. Device verification and live deployment remain blocked until real configuration/access is available.

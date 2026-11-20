@@ -16,6 +16,16 @@ steps:
       - VITE_POSTHOG_KEY=$_POSTHOG_KEY
       - --build-arg
       - VITE_POSTHOG_HOST=$_POSTHOG_HOST
+      - --build-arg
+      - VITE_WALLETCONNECT_PROJECT_ID=$_WALLETCONNECT_PROJECT_ID
+      - --build-arg
+      - VITE_BTCPAY_RELEASE_ID=$_BTCPAY_RELEASE_ID
+      - --build-arg
+      - VITE_BTCPAY_CHECKOUT_URL=$_BTCPAY_CHECKOUT_URL
+      - --build-arg
+      - VITE_BTCPAY_PRICE_LABEL=$_BTCPAY_PRICE_LABEL
+      - --build-arg
+      - VITE_BTCPAY_SUPPORT_EMAIL=$_BTCPAY_SUPPORT_EMAIL
       - -f
       - Dockerfile
       - .
@@ -47,6 +57,11 @@ substitutions:
   _SPOTIFY_REDIRECT_URI: ''
   _POSTHOG_KEY: ''
   _POSTHOG_HOST: 'https://us.i.posthog.com'
+  _WALLETCONNECT_PROJECT_ID: ''
+  _BTCPAY_RELEASE_ID: ''
+  _BTCPAY_CHECKOUT_URL: ''
+  _BTCPAY_PRICE_LABEL: ''
+  _BTCPAY_SUPPORT_EMAIL: ''
 availableSecrets:
   secretManager:
     - versionName: projects/$PROJECT_ID/secrets/xai-api-key/versions/latest
