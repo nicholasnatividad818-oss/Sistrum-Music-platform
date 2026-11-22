@@ -28,6 +28,8 @@ actual values, not a guessed region or repository:
 | `_AR_REPOSITORY` | Existing Docker repository name |
 | `_SERVICE_NAME` | Existing Cloud Run service, reportedly `nrn`; verify |
 | `_DEPLOY_REGION` | Existing Cloud Run service region |
+| `_SUPABASE_URL` | Supabase project URL for this deployment. Blank leaves Supabase unconfigured |
+| `_SUPABASE_PUBLISHABLE_KEY` | Supabase publishable browser key for that project. Never use a secret or service-role key |
 | `_SPOTIFY_CLIENT_ID` | Optional public client ID; blank uses existing code default |
 | `_SPOTIFY_REDIRECT_URI` | Optional registered callback; blank uses the site's origin |
 | `_POSTHOG_KEY` | Public PostHog project key (`phc_...`). Blank leaves analytics off |
@@ -59,6 +61,11 @@ not a Vite variable, Docker build arg, or substitution.
 
 A green local Vite build does not prove a Cloud Run deploy.
 
+For a first preview, set `_SERVICE_NAME` to `sistrum-preview` and configure the
+trigger for a preview branch. Use a Supabase test project for sign-in and upload
+checks. In Supabase, allow the preview's exact HTTPS return URL. Keep the
+production trigger and service pointed at their existing targets.
+
 Verify required APIs and the build service account's permissions to write the
 Artifact Registry image, deploy Cloud Run, and act as its runtime service account.
 Do not grant blanket project-owner access. See:
@@ -79,6 +86,8 @@ are verified; do not enable them by embedding private tokens.
 - Run the container checks above and verify the resulting Cloud Run revision URL.
 - Register that exact HTTPS callback with Spotify; test a real permitted account.
 - Verify mobile navigation, player, reconnect and update/offline behavior in a browser.
+- The Nginx container returns JSON 404 for `/api/*`. Features such as `/api/generate`
+  require a separately deployed backend and routing before they will work on Cloud Run.
 - Review real-user functionality separately: current App.tsx still imports mock data
   and stores catalog/playlists/comments locally. Container readiness does not prove
   durable uploads, multi-user authentication, payments or production escrow.
